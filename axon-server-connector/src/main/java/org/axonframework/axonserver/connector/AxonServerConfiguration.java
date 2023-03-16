@@ -17,6 +17,7 @@
 package org.axonframework.axonserver.connector;
 
 import io.axoniq.axonserver.grpc.control.NodeInfo;
+import io.grpc.util.AdvancedTlsX509TrustManager;
 import org.axonframework.axonserver.connector.event.util.EventCipher;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -229,6 +230,7 @@ public class AxonServerConfiguration {
      * Axon Server.
      */
     private HeartbeatConfiguration heartbeat = new HeartbeatConfiguration();
+    private AdvancedTlsX509TrustManager.Verification trustManagerVerification = AdvancedTlsX509TrustManager.Verification.CERTIFICATE_AND_HOST_NAME_VERIFICATION;
 
     /**
      * Instantiate a {@link Builder} to create an {@link AxonServerConfiguration}.
@@ -535,6 +537,14 @@ public class AxonServerConfiguration {
 
     public void setHeartbeat(HeartbeatConfiguration heartbeat) {
         this.heartbeat = heartbeat;
+    }
+
+    public AdvancedTlsX509TrustManager.Verification getTrustManagerVerification() {
+        return trustManagerVerification;
+    }
+
+    public void setTrustManagerVerification(AdvancedTlsX509TrustManager.Verification trustManagerVerification) {
+        this.trustManagerVerification = trustManagerVerification;
     }
 
     /**

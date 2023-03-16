@@ -24,6 +24,7 @@ import io.axoniq.axonserver.grpc.control.NodeInfo;
 import io.grpc.Channel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.GrpcSslContexts;
+import io.grpc.util.AdvancedTlsX509TrustManager;
 import org.axonframework.common.AxonConfigurationException;
 import org.axonframework.config.TagsConfiguration;
 import org.axonframework.lifecycle.Lifecycle;
@@ -33,6 +34,7 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -78,8 +80,8 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
     /**
      * Instantiate a Builder to be able to create an {@link AxonServerConnectionManager}.
      * <p>
-     * The {@link TagsConfiguration} is defaulted to {@link TagsConfiguration#TagsConfiguration()}. The {@link
-     * AxonServerConfiguration} is a <b>hard requirements</b> and as such should be provided.
+     * The {@link TagsConfiguration} is defaulted to {@link TagsConfiguration#TagsConfiguration()}. The
+     * {@link AxonServerConfiguration} is a <b>hard requirements</b> and as such should be provided.
      *
      * @return a Builder to be able to create a {@link AxonServerConnectionManager}
      */
@@ -95,8 +97,8 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
 
     /**
      * Starts the {@link AxonServerConnectionManager}. Will enable heartbeat messages to be send to the connected Axon
-     * Server instance in the {@link Phase#INSTRUCTION_COMPONENTS} phase, if this has been enabled through the {@link
-     * AxonServerConfiguration.HeartbeatConfiguration#isEnabled()}.
+     * Server instance in the {@link Phase#INSTRUCTION_COMPONENTS} phase, if this has been enabled through the
+     * {@link AxonServerConfiguration.HeartbeatConfiguration#isEnabled()}.
      */
     public void start() {
         if (heartbeatEnabled) {
@@ -119,7 +121,6 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
      * Retrieves the {@link AxonServerConnection} used for the given {@code context} of this application.
      *
      * @param context the context for which to retrieve an {@link AxonServerConnection}
-     *
      * @return the {@link AxonServerConnection} used for the given {@code context} of this application.
      */
     public AxonServerConnection getConnection(String context) {
@@ -141,7 +142,6 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
      *
      * @param context the (Bounded) Context for for which is verified the AxonServer connection through the gRPC
      *                channel
-     *
      * @return if the gRPC channel is opened, false otherwise
      */
     public boolean isConnected(String context) {
@@ -208,8 +208,8 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
     /**
      * Builder class to instantiate an {@link AxonServerConnectionManager}.
      * <p>
-     * The {@link TagsConfiguration} is defaulted to {@link TagsConfiguration#TagsConfiguration()}. The {@link
-     * AxonServerConfiguration} is a <b>hard requirements</b> and as such should be provided.
+     * The {@link TagsConfiguration} is defaulted to {@link TagsConfiguration#TagsConfiguration()}. The
+     * {@link AxonServerConfiguration} is a <b>hard requirements</b> and as such should be provided.
      */
     public static class Builder {
 
@@ -223,7 +223,6 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
          *
          * @param axonServerConfiguration an {@link AxonServerConfiguration} used to correctly configure the connections
          *                                created by an {@link AxonServerConnectionManager} instance
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder axonServerConfiguration(AxonServerConfiguration axonServerConfiguration) {
@@ -240,7 +239,6 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
          *
          * @param tagsConfiguration a {@link TagsConfiguration} to add the tags of this Axon instance as client
          *                          information when setting up a channel
-         *
          * @return the current Builder instance, for fluent interfacing
          */
         public Builder tagsConfiguration(TagsConfiguration tagsConfiguration) {
@@ -250,14 +248,13 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
         }
 
         /**
-         * Registers the given {@code channelCustomization}, which configures the underling {@link
-         * ManagedChannelBuilder} used to set up connections to AxonServer.
+         * Registers the given {@code channelCustomization}, which configures the underling
+         * {@link ManagedChannelBuilder} used to set up connections to AxonServer.
          * <p>
          * This method may be used in case none of the operations on this Builder provide support for the required
          * feature.
          *
          * @param channelCustomization A function defining the customization to make on the ManagedChannelBuilder
-         *
          * @return this builder for further configuration
          */
         public Builder channelCustomizer(UnaryOperator<ManagedChannelBuilder<?>> channelCustomization) {
@@ -270,7 +267,6 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
          * Server.
          *
          * @param axonFrameworkVersionResolver a string supplier that retrieve the current Axon Framework version
-         *
          * @return the current Builder instance, for fluent interfacing
          * @deprecated Not ued anymore
          */
@@ -301,58 +297,79 @@ public class AxonServerConnectionManager implements Lifecycle, ConnectionManager
             }
 
             if (axonServerConfiguration.isSslEnabled()) {
-                if (axonServerConfiguration.getCertFile() != null) {
-                    try {
-                        File certificateFile = new File(axonServerConfiguration.getCertFile());
-                        builder.useTransportSecurity(GrpcSslContexts.forClient()
-                                                                    .trustManager(certificateFile)
-                                                                    .build());
-                    } catch (SSLException e) {
-                        throw new AxonConfigurationException("Exception configuring Transport Security", e);
+                try {
+                    AdvancedTlsX509TrustManager trustManager =
+                            AdvancedTlsX509TrustManager.newBuilder()
+                                                       .setVerification(
+                                                               axonServerConfiguration.getTrustManagerVerification())
+                                                       .build();
+                    if (axonServerConfiguration.getCertFile() != null) {
+                        trustManager.updateTrustCredentialsFromFile(new File(
+                                                                            axonServerConfiguration.getCertFile()),
+                                                                    1,
+                                                                    TimeUnit.MINUTES,
+                                                                    Executors.newSingleThreadScheduledExecutor());
                     }
-                } else {
-                    builder.useTransportSecurity();
+                    builder.useTransportSecurity(GrpcSslContexts.forClient().trustManager(trustManager).build());
+                } catch (Exception e) {
+                    throw new AxonConfigurationException("Exception configuring Transport Security", e);
                 }
+            } else {
+                builder.useTransportSecurity();
             }
 
-            builder.connectTimeout(axonServerConfiguration.getConnectTimeout(), TimeUnit.MILLISECONDS);
-            if (axonServerConfiguration.getToken() != null) {
-                builder.token(axonServerConfiguration.getToken());
-            }
+            builder.connectTimeout(axonServerConfiguration.getConnectTimeout(),TimeUnit.MILLISECONDS);
+            if(axonServerConfiguration.getToken()!=null)
 
-            tagsConfiguration.getTags().forEach(builder::clientTag);
-            if (axonServerConfiguration.getMaxMessageSize() > 0) {
-                builder.maxInboundMessageSize(axonServerConfiguration.getMaxMessageSize());
-            }
-            if (axonServerConfiguration.getKeepAliveTime() > 0) {
-                builder.usingKeepAlive(axonServerConfiguration.getKeepAliveTime(),
-                                       axonServerConfiguration.getKeepAliveTimeout(),
-                                       TimeUnit.MILLISECONDS,
-                                       true);
-            }
-            if (axonServerConfiguration.getProcessorsNotificationRate() > 0) {
-                builder.processorInfoUpdateFrequency(axonServerConfiguration.getProcessorsNotificationRate(),
-                                                     TimeUnit.MILLISECONDS);
-            }
-
-            if (channelCustomization != null) {
-                builder.customize(channelCustomization);
-            }
-
-            AxonServerConnectionFactory connectionFactory = builder.build();
-            return new AxonServerConnectionManager(this, connectionFactory);
+        {
+            builder.token(axonServerConfiguration.getToken());
         }
 
-        /**
-         * Validates whether the fields contained in this Builder are set accordingly.
-         *
-         * @throws AxonConfigurationException if one field is asserted to be incorrect according to the Builder's
-         *                                    specifications
-         */
-        protected void validate() throws AxonConfigurationException {
-            assertNonNull(
-                    axonServerConfiguration, "The AxonServerConfiguration is a hard requirement and should be provided"
-            );
+            tagsConfiguration.getTags().
+
+        forEach(builder::clientTag);
+            if(axonServerConfiguration.getMaxMessageSize()>0)
+
+        {
+            builder.maxInboundMessageSize(axonServerConfiguration.getMaxMessageSize());
         }
+            if(axonServerConfiguration.getKeepAliveTime()>0)
+
+        {
+            builder.usingKeepAlive(axonServerConfiguration.getKeepAliveTime(),
+                                   axonServerConfiguration.getKeepAliveTimeout(),
+                                   TimeUnit.MILLISECONDS,
+                                   true);
+        }
+            if(axonServerConfiguration.getProcessorsNotificationRate()>0)
+
+        {
+            builder.processorInfoUpdateFrequency(axonServerConfiguration.getProcessorsNotificationRate(),
+                                                 TimeUnit.MILLISECONDS);
+        }
+
+            if(channelCustomization !=null)
+
+        {
+            builder.customize(channelCustomization);
+        }
+
+        AxonServerConnectionFactory connectionFactory = builder.build();
+            return new
+
+        AxonServerConnectionManager(this,connectionFactory);
     }
+
+    /**
+     * Validates whether the fields contained in this Builder are set accordingly.
+     *
+     * @throws AxonConfigurationException if one field is asserted to be incorrect according to the Builder's
+     *                                    specifications
+     */
+    protected void validate() throws AxonConfigurationException {
+        assertNonNull(
+                axonServerConfiguration, "The AxonServerConfiguration is a hard requirement and should be provided"
+        );
+    }
+}
 }
