@@ -23,8 +23,10 @@ import org.axonframework.common.Assert;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -123,6 +125,74 @@ class AxonServerContainerUtils {
             contexts.add(context);
         }
         return contexts;
+    }
+
+    /**
+     * Create the given {@code context} of the Axon Server instance contacted at the given {@code hostname} and
+     * {@code port} combination.
+     *
+     * @param context  The context to create.
+     * @param hostname The hostname of the Axon Server instance to create the given {@code context} of.
+     * @param port     The port of the Axon Server instance to create the given {@code context} of.
+     * @throws IOException When there are issues with the HTTP connection to the Axon Server instance at the given
+     *                     {@code hostname} and {@code port}.
+     */
+    static void createContext(String context, String hostname, int port) throws IOException {
+        final URL url = new URL(String.format("http://%s:%d/v1/context", hostname, port));
+        HttpURLConnection connection = null;
+        try {
+            String jsonRequest = String.format(
+                    "{\"context\": \"%s\", "
+                            + "\"replicationGroup\": \"%s\", "
+                            + "\"roles\": [{ \"node\": \"axonserver\", \"role\": \"PRIMARY\" }]}",
+                    context, context
+            );
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setRequestProperty("Content-Type", "application/json");
+            connection.setRequestProperty("Accept", "application/json");
+            connection.setDoOutput(true);
+            connection.setRequestMethod("POST");
+            try (OutputStream os = connection.getOutputStream()) {
+                byte[] input = jsonRequest.getBytes(StandardCharsets.UTF_8);
+                os.write(input, 0, input.length);
+            }
+            int responseCode = connection.getResponseCode();
+            Assert.isTrue(202 == responseCode, () -> "The response code [" + responseCode + "] did not match 202.");
+            connection.getInputStream().close();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        waitForContextsCondition(hostname, port, contexts -> contexts.contains(context));
+    }
+
+    /**
+     * Delete the given {@code context} of the Axon Server instance contacted at the given {@code hostname} and
+     * {@code port} combination.
+     *
+     * @param context  The context to delete.
+     * @param hostname The hostname of the Axon Server instance to delete the given {@code context} of.
+     * @param port     The port of the Axon Server instance to delete the given {@code context} of.
+     * @throws IOException When there are issues with the HTTP connection to the Axon Server instance at the given
+     *                     {@code hostname} and {@code port}.
+     */
+    static void deleteContext(String context, String hostname, int port) throws IOException {
+        final URL url = new URL(String.format("http://%s:%d/v1/context/%s", hostname, port, context));
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) url.openConnection();
+            connection.setDoOutput(true);
+            connection.setRequestMethod("DELETE");
+            int responseCode = connection.getResponseCode();
+            Assert.isTrue(202 == responseCode, () -> "The response code [" + responseCode + "] did not match 202.");
+            connection.getInputStream().close();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+        waitForContextsCondition(hostname, port, contexts -> !contexts.contains(context));
     }
 
     private static void waitForContextsCondition(String hostname,

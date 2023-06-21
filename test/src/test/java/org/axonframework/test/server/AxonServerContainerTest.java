@@ -20,8 +20,12 @@ import org.junit.jupiter.api.*;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 /**
  * Simple test class for {@link AxonServerContainer}.
@@ -81,6 +85,52 @@ class AxonServerContainerTest {
             assertEquals(testHostName, testSubject.getEnvMap().get("AXONIQ_AXONSERVER_HOSTNAME"));
             assertEquals(Boolean.toString(testDevMode),
                          testSubject.getEnvMap().get("AXONIQ_AXONSERVER_DEVMODE_ENABLED"));
+        }
+    }
+
+//    @Test
+    void createContextThrowsForbiddenOperationForSingleNodeSetup() {
+        try (
+                AxonServerContainer testSubject = new AxonServerContainer("axoniq/axonserver:latest-dev")
+        ) {
+            testSubject.start();
+            assertTrue(testSubject.isRunning());
+
+            CompletableFuture<Void> result = testSubject.createContext("my-context");
+
+            await().atMost(5000, TimeUnit.MILLISECONDS)
+                   .until(result::isCompletedExceptionally);
+            try {
+                result.get();
+            } catch (Exception e){
+                assertTrue(e instanceof ExecutionException);
+                Throwable resultCause = e.getCause();
+                assertTrue(resultCause instanceof IllegalArgumentException);
+                assertTrue(resultCause.getMessage().contains("403"));
+            }
+        }
+    }
+
+//    @Test
+    void deleteContextThrowsForbiddenOperationForSingleNodeSetup() {
+        try (
+                AxonServerContainer testSubject = new AxonServerContainer("axoniq/axonserver:latest-dev")
+        ) {
+            testSubject.start();
+            assertTrue(testSubject.isRunning());
+
+            CompletableFuture<Void> result = testSubject.deleteContext("my-context");
+
+            await().atMost(5000, TimeUnit.MILLISECONDS)
+                   .until(result::isCompletedExceptionally);
+            try {
+                result.get();
+            } catch (Exception e){
+                assertTrue(e instanceof ExecutionException);
+                Throwable resultCause = e.getCause();
+                assertTrue(resultCause instanceof IllegalArgumentException);
+                assertTrue(resultCause.getMessage().contains("403"));
+            }
         }
     }
 }

@@ -25,6 +25,7 @@ import org.testcontainers.utility.MountableFile;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Constructs an Axon Server container for testing.
@@ -251,6 +252,42 @@ public class AxonServerContainer extends GenericContainer<AxonServerContainer> {
         return String.format(AXON_SERVER_ADDRESS_TEMPLATE,
                              this.getHost(),
                              this.getMappedPort(AXON_SERVER_GRPC_PORT));
+    }
+
+    /**
+     * Create the given {@code context} for the Axon Server instances managed by this container.
+     * <p>
+     * This operation is <em>only</em> applicable in a multi-node cluster set-up.
+     *
+     * @param context The context to create for the Axon Server instances managed by this container.
+     * @return A {@link CompletableFuture} completely successfully when the given {@code context} is created.
+     */
+    public CompletableFuture<Void> createContext(String context) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                AxonServerContainerUtils.createContext(context, getHost(), getHttpPort());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    /**
+     * Delete the given {@code context} for the Axon Server instances managed by this container.
+     * <p>
+     * This operation is <em>only</em> applicable in a multi-node cluster set-up.
+     *
+     * @param context The context to delete for the Axon Server instances managed by this container.
+     * @return A {@link CompletableFuture} completely successfully when the given {@code context} is deleted.
+     */
+    public CompletableFuture<Void> deleteContext(String context) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                AxonServerContainerUtils.deleteContext(context, getHost(), getHttpPort());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @Override
