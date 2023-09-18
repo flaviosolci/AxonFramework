@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2023. Axon Framework
+ * Copyright (c) 2010-2022. Axon Framework
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,10 +87,7 @@ class SagaManagerTest {
                                                  .sagaRepository(mockSagaRepository)
                                                  .listenerInvocationErrorHandler(mockErrorHandler)
                                                  .associationValue(associationValue)
-                                                 .spanFactory(
-                                                         DefaultSagaManagerSpanFactory.builder()
-                                                                                      .spanFactory(spanFactory)
-                                                                                      .build())
+                                                 .spanFactory(spanFactory)
                                                  .build();
     }
 
@@ -116,10 +113,8 @@ class SagaManagerTest {
             testSubject.handle(event, Segment.ROOT_SEGMENT);
             return null;
         });
-        spanFactory.verifySpanCompleted("SagaManager.invokeSaga(Object)");
-        spanFactory.verifySpanHasAttributeValue("SagaManager.invokeSaga(Object)", "axon.sagaIdentifier", "saga1");
-        spanFactory.verifySpanCompleted("SagaManager.invokeSaga(Object)");
-        spanFactory.verifySpanHasAttributeValue("SagaManager.invokeSaga(Object)", "axon.sagaIdentifier", "saga2");
+        spanFactory.verifySpanCompleted("SagaManager[Object].invokeSaga saga1");
+        spanFactory.verifySpanCompleted("SagaManager[Object].invokeSaga saga2");
     }
 
     @Test
@@ -129,9 +124,7 @@ class SagaManagerTest {
                                                  .listenerInvocationErrorHandler(mockErrorHandler)
                                                  .sagaCreationPolicy(SagaCreationPolicy.IF_NONE_FOUND)
                                                  .associationValue(new AssociationValue("someKey", "someValue"))
-                                                 .spanFactory(DefaultSagaManagerSpanFactory.builder()
-                                                                                           .spanFactory(spanFactory)
-                                                                                           .build())
+                .spanFactory(spanFactory)
                                                  .build();
 
         EventMessage<?> event = new GenericEventMessage<>(new Object());
@@ -139,9 +132,8 @@ class SagaManagerTest {
         when(mockSagaRepository.find(any())).thenReturn(Collections.emptySet());
 
         testSubject.handle(event, Segment.ROOT_SEGMENT);
-        spanFactory.verifySpanCompleted("SagaManager.createSaga(Object)");
-        spanFactory.verifySpanCompleted("SagaManager.invokeSaga(Object)");
-        spanFactory.verifySpanHasAttributeValue("SagaManager.invokeSaga(Object)", "axon.sagaIdentifier", "saga1");
+        spanFactory.verifySpanCompleted("SagaManager[Object].startNewSaga");
+        spanFactory.verifySpanCompleted("SagaManager[Object].invokeSaga saga1");
     }
 
     @Test
@@ -340,7 +332,7 @@ class SagaManagerTest {
                 return this;
             }
 
-            public Builder spanFactory(SagaManagerSpanFactory spanFactory) {
+            public Builder spanFactory(SpanFactory spanFactory) {
                 super.spanFactory(spanFactory);
                 return this;
             }
