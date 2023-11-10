@@ -58,7 +58,7 @@ class AnnotationQueryHandlerBeanPostProcessorTest {
         AnnotatedQueryHandler annotatedQueryHandler = (AnnotatedQueryHandler) postProcessedBean;
         QueryMessage<MyQuery, Integer> myCommand = new GenericQueryMessage<>(new MyQuery(), ResponseTypes.instanceOf(Integer.class));
 
-        assertEquals(0, queryHandler.handle(myCommand));
+        assertEquals(0, queryHandler.handleSync(myCommand));
         assertEquals(1, annotatedQueryHandler.getInvocationCount());
     }
 
@@ -77,7 +77,7 @@ class AnnotationQueryHandlerBeanPostProcessorTest {
         CustomAnnotatedQueryHandler annotatedQueryHandler = (CustomAnnotatedQueryHandler) postProcessedBean;
         QueryMessage<MyQuery, Integer> myCommand = new GenericQueryMessage<>(new MyQuery(), ResponseTypes.instanceOf(Integer.class));
 
-        assertEquals(0, queryHandler.handle(myCommand));
+        assertEquals(0, queryHandler.handleSync(myCommand));
         assertEquals(1, annotatedQueryHandler.getInvocationCount());
     }
 

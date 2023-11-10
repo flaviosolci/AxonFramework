@@ -59,7 +59,7 @@ class AnnotationCommandHandlerBeanPostProcessorTest {
         MessageHandler<CommandMessage<?>> commandHandler = (MessageHandler<CommandMessage<?>>) postProcessedBean;
         AnnotatedCommandHandler annotatedCommandHandler = (AnnotatedCommandHandler) postProcessedBean;
         CommandMessage<MyCommand> myCommand = GenericCommandMessage.asCommandMessage(new MyCommand());
-        commandHandler.handle(myCommand);
+        commandHandler.handleSync(myCommand);
 
         assertEquals(1, annotatedCommandHandler.getInvocationCount());
     }
@@ -77,7 +77,7 @@ class AnnotationCommandHandlerBeanPostProcessorTest {
         MessageHandler<CommandMessage<?>> commandHandler = (MessageHandler<CommandMessage<?>>) postProcessedBean;
         CustomAnnotatedCommandHandler annotatedCommandHandler = (CustomAnnotatedCommandHandler) postProcessedBean;
         CommandMessage<MyCommand> myCommand = GenericCommandMessage.asCommandMessage(new MyCommand());
-        commandHandler.handle(myCommand);
+        commandHandler.handleSync(myCommand);
 
         assertEquals(1, annotatedCommandHandler.getInvocationCount());
     }
