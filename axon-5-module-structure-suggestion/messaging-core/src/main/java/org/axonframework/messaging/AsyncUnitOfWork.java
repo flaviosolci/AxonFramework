@@ -16,44 +16,44 @@ import java.util.function.Function;
 /**
  * The UnitOfWork is a hook to phase tasks
  */
-public class UnitOfWork implements ProcessingLifecycle {
+public class AsyncUnitOfWork implements ProcessingLifecycle {
 
-    private static final Logger logger = LoggerFactory.getLogger(UnitOfWork.class);
+    private static final Logger logger = LoggerFactory.getLogger(AsyncUnitOfWork.class);
 
     private final String name;
-    private final UnitOfWorkProcessingContext context;
+    private final AsyncUnitOfWorkProcessingContext context;
 
-    public UnitOfWork() {
+    public AsyncUnitOfWork() {
         this(UUID.randomUUID().toString());
     }
 
-    public UnitOfWork(String name) {
+    public AsyncUnitOfWork(String name) {
         this(name, Runnable::run);
     }
 
-    public UnitOfWork(String name, Executor workScheduler) {
+    public AsyncUnitOfWork(String name, Executor workScheduler) {
         this(name, null, workScheduler);
     }
 
-    public UnitOfWork(String name, ProcessingContext parent, Executor workScheduler) {
+    public AsyncUnitOfWork(String name, ProcessingContext parent, Executor workScheduler) {
         this.name = name;
-        this.context = new UnitOfWorkProcessingContext(name, parent, workScheduler);
+        this.context = new AsyncUnitOfWorkProcessingContext(name, parent, workScheduler);
     }
 
     public static <R> CompletableFuture<R> createAndExecute(Function<ProcessingContext, CompletableFuture<R>> action) {
-        return new UnitOfWork().execute(action);
+        return new AsyncUnitOfWork().execute(action);
     }
 
     @Override
     public String toString() {
-        return "UnitOfWork{" +
+        return "AsyncUnitOfWork{" +
                 "name='" + name + '\'' +
                 "phase='" + context.currentPhase.get() + '\'' +
                 '}';
     }
 
     @Override
-    public UnitOfWork on(Phase phase, Function<ProcessingContext, CompletableFuture<?>> action) {
+    public AsyncUnitOfWork on(Phase phase, Function<ProcessingContext, CompletableFuture<?>> action) {
         context.on(phase, action);
         return this;
     }
