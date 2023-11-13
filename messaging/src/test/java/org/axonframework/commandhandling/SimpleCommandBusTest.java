@@ -18,6 +18,8 @@ package org.axonframework.commandhandling;
 
 import org.axonframework.commandhandling.callbacks.NoOpCallback;
 import org.axonframework.common.Registration;
+import org.axonframework.common.transaction.Transaction;
+import org.axonframework.common.transaction.TransactionManager;
 import org.axonframework.messaging.InterceptorChain;
 import org.axonframework.messaging.MessageHandler;
 import org.axonframework.messaging.MessageHandlerInterceptor;
@@ -47,12 +49,18 @@ class SimpleCommandBusTest {
     private TestSpanFactory spanFactory;
     private SimpleCommandBus testSubject;
     private DefaultCommandBusSpanFactory commandBusSpanFactory;
+    private Transaction mockTransaction;
 
     @BeforeEach
     void setUp() {
         this.spanFactory = new TestSpanFactory();
         this.commandBusSpanFactory = DefaultCommandBusSpanFactory.builder().spanFactory(spanFactory).build();
+        this.mockTransaction = mock(Transaction.class);
+        TransactionManager mockTransactionManager = mock(TransactionManager.class);
+        when(mockTransactionManager.startTransaction()).thenReturn(mockTransaction);
+
         this.testSubject = SimpleCommandBus.builder()
+                                           .transactionManager(mockTransactionManager)
                                            .spanFactory(commandBusSpanFactory).build();
     }
 
@@ -107,12 +115,7 @@ class SimpleCommandBusTest {
     @Test
     void dispatchCommandImplicitUnitOfWorkIsCommittedOnReturnValue() {
         final AtomicReference<UnitOfWork<?>> unitOfWork = new AtomicReference<>();
-        testSubject.subscribe(String.class.getName(), command -> {
-            unitOfWork.set(CurrentUnitOfWork.get());
-            assertTrue(CurrentUnitOfWork.isStarted());
-            assertNotNull(CurrentUnitOfWork.get());
-            return command;
-        });
+        testSubject.subscribe(String.class.getName(), command -> command);
         testSubject.dispatch(asCommandMessage("Say hi!"),
                              (CommandCallback<String, CommandMessage<String>>) (commandMessage, commandResultMessage) -> {
                                  if (commandResultMessage.isExceptional()) {
@@ -122,9 +125,8 @@ class SimpleCommandBusTest {
                                  }
                                  assertEquals("Say hi!", commandResultMessage.getPayload().getPayload());
                              });
-        assertFalse(CurrentUnitOfWork.isStarted());
-        assertFalse(unitOfWork.get().isRolledBack());
-        assertFalse(unitOfWork.get().isActive());
+        verify(mockTransaction, never()).rollback();
+        verify(mockTransaction).commit();
     }
 
     @Test
@@ -143,11 +145,7 @@ class SimpleCommandBusTest {
 
     @Test
     void dispatchCommandImplicitUnitOfWorkIsRolledBackOnException() {
-        final AtomicReference<UnitOfWork<?>> unitOfWork = new AtomicReference<>();
         testSubject.subscribe(String.class.getName(), command -> {
-            unitOfWork.set(CurrentUnitOfWork.get());
-            assertTrue(CurrentUnitOfWork.isStarted());
-            assertNotNull(CurrentUnitOfWork.get());
             throw new RuntimeException();
         });
         testSubject.dispatch(asCommandMessage("Say hi!"), (commandMessage, commandResultMessage) -> {
@@ -158,15 +156,13 @@ class SimpleCommandBusTest {
                 fail("Expected exception");
             }
         });
-        assertFalse(CurrentUnitOfWork.isStarted());
-        assertTrue(unitOfWork.get().isRolledBack());
+        verify(mockTransaction).rollback();
+        verify(mockTransaction, never()).commit();
     }
 
     @Test
     void dispatchCommandUnitOfWorkIsCommittedOnCheckedException() {
-        final AtomicReference<UnitOfWork<?>> unitOfWork = new AtomicReference<>();
         testSubject.subscribe(String.class.getName(), command -> {
-            unitOfWork.set(CurrentUnitOfWork.get());
             throw new Exception();
         });
         testSubject.setRollbackConfiguration(RollbackConfigurationType.UNCHECKED_EXCEPTIONS);
@@ -179,8 +175,8 @@ class SimpleCommandBusTest {
                 fail("Expected exception");
             }
         });
-        assertTrue(!unitOfWork.get().isActive());
-        assertTrue(!unitOfWork.get().isRolledBack());
+        verify(mockTransaction).rollback();
+        verify(mockTransaction, never()).commit();
     }
 
 
@@ -209,7 +205,7 @@ class SimpleCommandBusTest {
     void dispatchCommandHandlerUnsubscribed() {
         MyStringCommandHandler commandHandler = new MyStringCommandHandler();
         Registration subscription = testSubject.subscribe(String.class.getName(), commandHandler);
-        subscription.close();
+        subscription.cancel();
         CommandMessage<Object> command = asCommandMessage("Say hi!");
         CommandCallback callback = createCallbackMock();
         testSubject.dispatch(command, callback);

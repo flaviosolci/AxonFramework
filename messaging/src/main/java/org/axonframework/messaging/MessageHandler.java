@@ -35,11 +35,15 @@ public interface MessageHandler<T extends Message<?>> {
      * @throws Exception any exception that occurs during message handling
      */
     // TODO replace this operation for the new handle method
-    default Object handleSync(T message) throws Exception {
-        return handle(message).get();
-    }
+    Object handleSync(T message) throws Exception;
 
-    CompletableFuture<Object> handle(T message);
+    default CompletableFuture<Object> handle(T message) {
+        try {
+            return CompletableFuture.completedFuture(handleSync(message));
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
 
     /**
      * Indicates whether this handler can handle the given message
