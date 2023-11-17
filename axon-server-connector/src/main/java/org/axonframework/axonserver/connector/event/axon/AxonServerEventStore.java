@@ -74,7 +74,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -298,21 +297,6 @@ public class AxonServerEventStore extends AbstractEventStore {
         }
 
         /**
-         * Sets the {@link Predicate} used to filter snapshots when returning aggregate events. When not set all
-         * snapshots are used.
-         * <p>
-         * This object is used by the AxonServer {@link EventStorageEngine} implementation.
-         *
-         * @param snapshotFilter The snapshot filter predicate
-         * @return the current Builder instance, for fluent interfacing
-         * @deprecated in favor of {@link #snapshotFilter(SnapshotFilter)}
-         */
-        @Deprecated
-        public Builder snapshotFilter(Predicate<? super DomainEventData<?>> snapshotFilter) {
-            return snapshotFilter(snapshotFilter::test);
-        }
-
-        /**
          * Sets the {@link SnapshotFilter} used to filter snapshots when returning aggregate events. When not set all
          * snapshots are used. Note that {@link SnapshotFilter} instances can be combined and should return {@code true}
          * if they handle a snapshot they wish to ignore.
@@ -382,7 +366,9 @@ public class AxonServerEventStore extends AbstractEventStore {
          */
         @Override
         protected void validate() throws AxonConfigurationException {
-            BuilderUtils.assertNonNull(snapshotFilter, "The SnapshotFilter is a hard requirement and should be provided");
+            assertNonNull(eventSerializer, "The event Serializer is a hard requirement and should be provided");
+            assertNonNull(snapshotSerializer, "The snapshot Serializer is a hard requirement and should be provided");
+            assertNonNull(snapshotFilter, "The SnapshotFilter is a hard requirement and should be provided");
             super.validate();
         }
     }
@@ -732,21 +718,6 @@ public class AxonServerEventStore extends AbstractEventStore {
                 return this;
             }
 
-            /**
-             * {@inheritDoc}
-             *
-             * @deprecated in favor of {@link #snapshotFilter(SnapshotFilter)}
-             */
-            @Override
-            @Deprecated
-            public Builder snapshotFilter(Predicate<? super DomainEventData<?>> snapshotFilter) {
-                if (snapshotFilter != null) {
-                    super.snapshotFilter(snapshotFilter);
-                    snapshotFilterSet = true;
-                }
-                return this;
-            }
-
             @Override
             public Builder snapshotFilter(SnapshotFilter snapshotFilter) {
                 if (snapshotFilter != null) {
@@ -786,6 +757,7 @@ public class AxonServerEventStore extends AbstractEventStore {
 
             @Override
             protected void validate() throws AxonConfigurationException {
+                super.validate();
                 assertNonNull(configuration,
                               "The AxonServerConfiguration is a hard requirement and should be provided");
                 assertNonNull(connectionManager,

@@ -24,10 +24,12 @@ import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Test class validating the {@link EqualFieldsMatcher}.
+ * Test class validating the {@link EqualFieldsMatcher}. Use of deprecated code is suppressed as we still have the
+ * responsibility to validate our own code.
  *
  * @author Allard Buijze
  */
+@SuppressWarnings("deprecation")
 class EqualFieldsMatcherTest {
 
     private EqualFieldsMatcher<MyEvent> testSubject;
@@ -37,7 +39,7 @@ class EqualFieldsMatcherTest {
     @BeforeEach
     void setUp() {
         expectedEvent = new MyEvent(aggregateId, 1);
-        testSubject = Matchers.equalTo(expectedEvent);
+        testSubject = new EqualFieldsMatcher<>(expectedEvent);
     }
 
     @Test
@@ -63,7 +65,7 @@ class EqualFieldsMatcherTest {
 
     @Test
     void matches_WrongFieldValueInIgnoredField() {
-        testSubject = Matchers.equalTo(expectedEvent, field -> !field.getName().equals("someValue"));
+        testSubject = new EqualFieldsMatcher<>(expectedEvent, field -> !field.getName().equals("someValue"));
         assertTrue(testSubject.matches(new MyEvent(aggregateId, 2)));
     }
 
