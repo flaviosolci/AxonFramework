@@ -144,10 +144,10 @@ public class TrackingEventProcessorIntegrationTest {
             entityManager.createQuery("DELETE FROM TokenEntry t").executeUpdate();
             tokenStore.initializeTokenSegments("first", 1);
             tokenStore.initializeTokenSegments("second", 1);
-            tokenStore.storeToken(
+            tokenStore.storeTokenSync(
                     GapAwareTrackingToken.newInstance(1, new TreeSet<>(Collections.singleton(0L))), "first", 0
             );
-            tokenStore.storeToken(GapAwareTrackingToken.newInstance(0, new TreeSet<>()), "second", 0);
+            tokenStore.storeTokenSync(GapAwareTrackingToken.newInstance(0, new TreeSet<>()), "second", 0);
         });
 
         assertFalse(countDownLatch1.await(1, TimeUnit.SECONDS));

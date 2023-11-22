@@ -17,6 +17,7 @@
 package org.axonframework.eventhandling.pooled;
 
 import org.axonframework.common.transaction.NoTransactionManager;
+import org.axonframework.eventhandling.EventHandlerInvoker;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.GenericEventMessage;
 import org.axonframework.eventhandling.GenericTrackedEventMessage;
@@ -45,6 +46,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import javax.annotation.Nonnull;
 
 import static org.axonframework.utils.AssertUtils.assertWithin;
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,7 +64,8 @@ class WorkPackageTest {
     private TokenStore tokenStore;
     private ScheduledExecutorService executorService;
     private TestEventFilter eventFilter;
-    private TestBatchProcessor batchProcessor;
+    //    private TestBatchProcessor batchProcessor;
+    private TestEventHandlerInvoker eventHandlerInvoker;
     private Segment segment;
     private TrackingToken initialTrackingToken;
 
@@ -79,7 +82,7 @@ class WorkPackageTest {
         tokenStore = spy(new InMemoryTokenStore());
         executorService = spy(new DelegateScheduledExecutorService(Executors.newScheduledThreadPool(1)));
         eventFilter = new TestEventFilter();
-        batchProcessor = new TestBatchProcessor();
+//        batchProcessor = new TestBatchProcessor();
         segment = Segment.ROOT_SEGMENT;
         initialTrackingToken = new GlobalSequenceTrackingToken(0L);
 
@@ -87,6 +90,7 @@ class WorkPackageTest {
         trackerStatusUpdates = new ArrayList<>();
         eventFilterPredicate = event -> true;
         batchProcessorPredicate = event -> true;
+        eventHandlerInvoker = new TestEventHandlerInvoker();
 
         testSubjectBuilder = WorkPackage.builder()
                                         .name(PROCESSOR_NAME)
@@ -94,7 +98,8 @@ class WorkPackageTest {
                                         .transactionManager(NoTransactionManager.instance())
                                         .executorService(executorService)
                                         .eventFilter(eventFilter)
-                                        .batchProcessor(batchProcessor)
+                                        .eventHandlerInvoker(eventHandlerInvoker)
+//                                        .batchProcessor(batchProcessor)
                                         .segment(segment)
                                         .initialToken(initialTrackingToken)
                                         .batchSize(1)
@@ -189,7 +194,8 @@ class WorkPackageTest {
 
         CompletableFuture<Exception> abortResult = testSubject.abort(null);
         assertTrue(abortResult.isDone());
-        assertTrue(abortResult.get().getClass().isAssignableFrom(IllegalStateException.class));
+        assertTrue(abortResult.get().getClass().isAssignableFrom(IllegalStateException.class),
+                   "Expected IllegalStateException but got [" + abortResult.get().getClass() + "]");
     }
 
     /**
@@ -208,12 +214,12 @@ class WorkPackageTest {
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(1, validatedEvents.size()));
         assertEquals(expectedEvent, validatedEvents.get(0));
 
-        List<EventMessage<?>> processedEvents = batchProcessor.getProcessedEvents();
+        List<EventMessage<?>> processedEvents = eventHandlerInvoker.getProcessedEvents();
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(1, processedEvents.size()));
         assertEquals(expectedEvent.trackingToken(), ((TrackedEventMessage<?>) processedEvents.get(0)).trackingToken());
 
         ArgumentCaptor<TrackingToken> tokenCaptor = ArgumentCaptor.forClass(TrackingToken.class);
-        verify(tokenStore).storeToken(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
+        verify(tokenStore).storeTokenSync(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
         assertEquals(expectedToken, tokenCaptor.getValue());
 
         assertEquals(1, trackerStatusUpdates.size());
@@ -232,7 +238,7 @@ class WorkPackageTest {
 
         testSubject.scheduleEvent(expectedEvent);
 
-        List<EventMessage<?>> processedEvents = batchProcessor.getProcessedEvents();
+        List<EventMessage<?>> processedEvents = eventHandlerInvoker.getProcessedEvents();
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(1, processedEvents.size()));
 
         TrackingToken resultAdvancedToken = ((TrackedEventMessage<?>) processedEvents.get(0)).trackingToken();
@@ -253,7 +259,7 @@ class WorkPackageTest {
 
         testSubject.scheduleEvent(expectedEvent);
 
-        List<EventMessage<?>> processedEvents = batchProcessor.getProcessedEvents();
+        List<EventMessage<?>> processedEvents = eventHandlerInvoker.getProcessedEvents();
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(1, processedEvents.size()));
 
         TrackingToken resultAdvancedToken = ((TrackedEventMessage<?>) processedEvents.get(0)).trackingToken();
@@ -276,12 +282,12 @@ class WorkPackageTest {
         testSubjectWithShortThreshold.scheduleEvent(expectedEvent);
 
         // Should have handled one event, so a subsequent run of WorkPackage#processEvents will extend the claim.
-        List<EventMessage<?>> processedEvents = batchProcessor.getProcessedEvents();
+        List<EventMessage<?>> processedEvents = eventHandlerInvoker.getProcessedEvents();
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(1, processedEvents.size()));
         assertEquals(expectedEvent.trackingToken(), ((TrackedEventMessage<?>) processedEvents.get(0)).trackingToken());
         // We  need to verify the TokenStore#storeToken operation, otherwise the extendClaim verify will not succeed.
         ArgumentCaptor<TrackingToken> tokenCaptor = ArgumentCaptor.forClass(TrackingToken.class);
-        verify(tokenStore).storeToken(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
+        verify(tokenStore).storeTokenSync(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
         assertEquals(expectedToken, tokenCaptor.getValue());
 
         assertWithin(
@@ -328,7 +334,7 @@ class WorkPackageTest {
                     // Furthermore, the test could be to fast to incorporate the extremelyShortClaimExtensionThreshold as a reason to extend the claim too.
                     testSubjectWithShortThreshold.scheduleWorker();
                     verify(tokenStore, atLeastOnce())
-                            .storeToken(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
+                            .storeTokenSync(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
                 }
         );
         assertEquals(expectedToken, tokenCaptor.getValue());
@@ -458,12 +464,12 @@ class WorkPackageTest {
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(2, validatedEvents.size()));
         assertTrue(validatedEvents.containsAll(testEvents));
 
-        List<EventMessage<?>> processedEvents = batchProcessor.getProcessedEvents();
+        List<EventMessage<?>> processedEvents = eventHandlerInvoker.getProcessedEvents();
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(1, processedEvents.size()));
         assertEquals(expectedEvent.trackingToken(), ((TrackedEventMessage<?>) processedEvents.get(0)).trackingToken());
 
         ArgumentCaptor<TrackingToken> tokenCaptor = ArgumentCaptor.forClass(TrackingToken.class);
-        verify(tokenStore).storeToken(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
+        verify(tokenStore).storeTokenSync(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
         assertEquals(expectedToken, tokenCaptor.getValue());
 
         assertEquals(1, trackerStatusUpdates.size());
@@ -491,7 +497,7 @@ class WorkPackageTest {
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(2, validatedEvents.size()));
         assertTrue(validatedEvents.containsAll(expectedEvents));
 
-        List<EventMessage<?>> processedEvents = batchProcessor.getProcessedEvents();
+        List<EventMessage<?>> processedEvents = eventHandlerInvoker.getProcessedEvents();
         assertWithin(500, TimeUnit.MILLISECONDS, () -> assertEquals(2, processedEvents.size()));
         assertEquals(expectedEventOne.trackingToken(),
                      ((TrackedEventMessage<?>) processedEvents.get(0)).trackingToken());
@@ -499,7 +505,7 @@ class WorkPackageTest {
                      ((TrackedEventMessage<?>) processedEvents.get(1)).trackingToken());
 
         ArgumentCaptor<TrackingToken> tokenCaptor = ArgumentCaptor.forClass(TrackingToken.class);
-        verify(tokenStore).storeToken(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
+        verify(tokenStore).storeTokenSync(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
         assertEquals(expectedToken, tokenCaptor.getValue());
 
         assertFalse(trackerStatusUpdates.isEmpty());
@@ -539,6 +545,33 @@ class WorkPackageTest {
                     return null;
                 });
             }
+        }
+
+        public List<EventMessage<?>> getProcessedEvents() {
+            return processedEvents;
+        }
+    }
+
+    private class TestEventHandlerInvoker implements EventHandlerInvoker {
+
+        private final List<EventMessage<?>> processedEvents = new ArrayList<>();
+
+        @Override
+        public boolean canHandle(@Nonnull EventMessage<?> eventMessage, @Nonnull Segment segment) {
+            throw new UnsupportedOperationException("not needed");
+        }
+
+        @Override
+        public void handleSync(@Nonnull EventMessage<?> message, @Nonnull Segment segment) throws Exception {
+            throw new UnsupportedOperationException("not needed");
+        }
+
+        @Override
+        public CompletableFuture<Void> handle(@Nonnull EventMessage<?> message, @Nonnull Segment segment) {
+            if (batchProcessorPredicate.test(Collections.singletonList(message))) {
+                processedEvents.add(message);
+            }
+            return CompletableFuture.completedFuture(null);
         }
 
         public List<EventMessage<?>> getProcessedEvents() {

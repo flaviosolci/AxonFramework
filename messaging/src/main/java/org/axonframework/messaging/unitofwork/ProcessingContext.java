@@ -8,6 +8,19 @@ public interface ProcessingContext extends ProcessingLifecycle {
 
     Resources resources(ResourceScope scope);
 
+    default Resources localResources(ResourceScope scope) {
+        return resources(ResourceScope.LOCAL);
+    }
+
+    default Resources inheritedResources(ResourceScope scope) {
+        return resources(ResourceScope.INHERITED);
+    }
+
+    default Resources sharedResources() {
+        return resources(ResourceScope.SHARED);
+    }
+
+
     boolean isStarted();
 
     boolean isRolledBack();

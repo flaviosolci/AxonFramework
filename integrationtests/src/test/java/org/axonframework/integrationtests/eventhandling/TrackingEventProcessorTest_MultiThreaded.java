@@ -163,9 +163,9 @@ class TrackingEventProcessorTest_MultiThreaded {
     @Test
     void processorWorkerCountWithMultipleSegments() {
         GlobalSequenceTrackingToken tokenSegmentZero = new GlobalSequenceTrackingToken(1L);
-        tokenStore.storeToken(tokenSegmentZero, "test", 0);
+        tokenStore.storeTokenSync(tokenSegmentZero, "test", 0);
         GlobalSequenceTrackingToken tokenSegmentOne = new GlobalSequenceTrackingToken(2L);
-        tokenStore.storeToken(tokenSegmentOne, "test", 1);
+        tokenStore.storeTokenSync(tokenSegmentOne, "test", 1);
 
         testSubject.start();
 
@@ -192,8 +192,8 @@ class TrackingEventProcessorTest_MultiThreaded {
      */
     @Test
     void processorWorkerCountWithMultipleSegmentsClaimFails() throws InterruptedException {
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 0);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "test", 1);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 0);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "test", 1);
 
         // Will skip segments.
         doThrow(new UnableToClaimTokenException("Failed")).when(tokenStore).extendClaim("test", 0);
@@ -210,8 +210,8 @@ class TrackingEventProcessorTest_MultiThreaded {
 
     @Test
     void processorClaimsSegment() {
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 0);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "test", 1);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 0);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "test", 1);
 
         testSubject.start();
 
@@ -220,15 +220,15 @@ class TrackingEventProcessorTest_MultiThreaded {
         await("Start").atMost(Duration.ofSeconds(1))
                       .pollDelay(Duration.ofMillis(50))
                       .until(() -> testSubject.activeProcessorThreads() == 2);
-        verify(tokenStore, atLeast(1)).storeToken(any(), eq("test"), eq(0));
-        verify(tokenStore, atLeast(1)).storeToken(any(), eq("test"), eq(1));
+        verify(tokenStore, atLeast(1)).storeTokenSync(any(), eq("test"), eq(0));
+        verify(tokenStore, atLeast(1)).storeTokenSync(any(), eq("test"), eq(1));
     }
 
     @Test
     void blacklistingSegmentWillHaveProcessorClaimAnotherOne() {
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 0);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "test", 1);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "test", 2);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 0);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "test", 1);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "test", 2);
 
         testSubject.start();
 
@@ -251,8 +251,8 @@ class TrackingEventProcessorTest_MultiThreaded {
 
     @Test
     void processorWorkerCountWithMultipleSegmentsWithOneThread() {
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 0);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "test", 1);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 0);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "test", 1);
 
         configureProcessor(TrackingEventProcessorConfiguration.forSingleThreadedProcessing());
         testSubject.start();
@@ -313,7 +313,7 @@ class TrackingEventProcessorTest_MultiThreaded {
         testSubject.start();
         eventBus.publish(createEvents(2));
         assertTrue(countDownLatch.await(5, SECONDS), "Expected Unit of Work to have reached clean up phase");
-        verify(tokenStore, atLeastOnce()).storeToken(any(), any(), anyInt());
+        verify(tokenStore, atLeastOnce()).storeTokenSync(any(), any(), anyInt());
         assertNotNull(tokenStore.fetchToken(testSubject.getName(), 0));
         assertNotNull(tokenStore.fetchToken(testSubject.getName(), 1));
     }
@@ -324,7 +324,7 @@ class TrackingEventProcessorTest_MultiThreaded {
         eventBus.publish(createEvents(10));
         //noinspection resource
         TrackedEventMessage<?> firstEvent = eventBus.openStream(null).nextAvailable();
-        tokenStore.storeToken(firstEvent.trackingToken(), testSubject.getName(), 0);
+        tokenStore.storeTokenSync(firstEvent.trackingToken(), testSubject.getName(), 0);
         assertEquals(firstEvent.trackingToken(), tokenStore.fetchToken(testSubject.getName(), 0));
 
         final AcknowledgeByThread acknowledgeByThread = new AcknowledgeByThread();

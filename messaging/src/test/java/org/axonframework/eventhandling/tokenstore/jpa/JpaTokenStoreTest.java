@@ -69,7 +69,7 @@ class JpaTokenStoreTest {
     void updateNullToken() {
         jpaTokenStore.initializeTokenSegments("test", 1);
         jpaTokenStore.fetchToken("test", 0);
-        jpaTokenStore.storeToken(null, "test", 0);
+        jpaTokenStore.storeTokenSync(null, "test", 0);
         List<TokenEntry> tokens = entityManager.createQuery(
                         "SELECT t FROM TokenEntry t " +
                                 "WHERE t.processorName = :processorName",
@@ -88,7 +88,7 @@ class JpaTokenStoreTest {
         jpaTokenStore.initializeTokenSegments("test", 1);
         jpaTokenStore.fetchToken("test", 0);
         entityManager.flush();
-        jpaTokenStore.storeToken(null, "test", 0);
+        jpaTokenStore.storeTokenSync(null, "test", 0);
         entityManager.flush();
         entityManager.clear();
         TrackingToken token = jpaTokenStore.fetchToken("test", 0);
@@ -208,7 +208,7 @@ class JpaTokenStoreTest {
         jpaTokenStore.initializeTokenSegments("test", 1);
 
         assertNull(jpaTokenStore.fetchToken("test", 0));
-        jpaTokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 0);
+        jpaTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 0);
 
         List<TokenEntry> tokens = entityManager.createQuery("SELECT t FROM TokenEntry t " +
                                 "WHERE t.processorName = :processorName",
@@ -343,9 +343,9 @@ class JpaTokenStoreTest {
 
         assertNull(jpaTokenStore.fetchToken("test", 0));
 
-        jpaTokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "proc1", 0);
-        jpaTokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "proc1", 1);
-        jpaTokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "proc2", 0);
+        jpaTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "proc1", 0);
+        jpaTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "proc1", 1);
+        jpaTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "proc2", 0);
     }
 
     @Test
@@ -368,14 +368,14 @@ class JpaTokenStoreTest {
         stealingJpaTokenStore.fetchToken("stealing", 0);
 
         try {
-            jpaTokenStore.storeToken(new GlobalSequenceTrackingToken(0), "stealing", 0);
+            jpaTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(0), "stealing", 0);
             fail("Expected UnableToClaimTokenException");
         } catch (UnableToClaimTokenException e) {
             // expected
         }
         jpaTokenStore.releaseClaim("stealing", 0);
         // claim should still be on stealingJpaTokenStore:
-        stealingJpaTokenStore.storeToken(new GlobalSequenceTrackingToken(1), "stealing", 0);
+        stealingJpaTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1), "stealing", 0);
     }
 
     @Test
@@ -398,12 +398,12 @@ class JpaTokenStoreTest {
         newTransAction();
 
         jpaTokenStore.fetchToken("multi", 0);
-        jpaTokenStore.storeToken(new GlobalSequenceTrackingToken(1), "multi", 0);
+        jpaTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1), "multi", 0);
         newTransAction();
 
         TrackingToken actual = jpaTokenStore.fetchToken("multi", 0);
         assertEquals(new GlobalSequenceTrackingToken(1), actual);
-        jpaTokenStore.storeToken(new GlobalSequenceTrackingToken(2), "multi", 0);
+        jpaTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2), "multi", 0);
         newTransAction();
 
         actual = jpaTokenStore.fetchToken("multi", 0);

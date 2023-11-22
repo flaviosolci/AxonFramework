@@ -199,35 +199,29 @@ public class SimpleCommandBus implements CommandBus {
 
                        AsyncUnitOfWork unitOfWork = new AsyncUnitOfWork();
                        // TODO provide UnitOfUtils for transaction management?!
-                       unitOfWork.on(ProcessingLifecycle.Phase.PRE_INVOCATION,
-                                     context -> {
-                                         Transaction transaction = transactionManager.startTransaction();
-                                         context.resources(ProcessingContext.ResourceScope.SHARED)
-                                                .put(Transaction.class,
-                                                     transaction);
-                                         return CompletableFuture.completedFuture(
-                                                 null);
-                                     });
-                       unitOfWork.on(ProcessingLifecycle.Phase.COMMIT,
-                                     context -> {
-                                         context.resources(ProcessingContext.ResourceScope.SHARED)
-                                                .get(Transaction.class).commit();
-                                         return CompletableFuture.completedFuture(
-                                                 null);
-                                     });
-                       unitOfWork.on(ProcessingLifecycle.Phase.ROLLBACK,
-                                     context -> {
-                                         context.resources(ProcessingContext.ResourceScope.SHARED)
-                                                .get(Transaction.class)
-                                                .rollback();
-                                         return CompletableFuture.completedFuture(
-                                                 null);
-                                     });
+                       unitOfWork.onPreInvocation(context -> {
+                           Transaction transaction = transactionManager.startTransaction();
+                           context.resources(ProcessingContext.ResourceScope.SHARED)
+                                  .put(Transaction.class,
+                                       transaction);
+                           return CompletableFuture.completedFuture(
+                                   null);
+                       });
+                       unitOfWork.onCommit(context -> {
+                           context.resources(ProcessingContext.ResourceScope.SHARED)
+                                  .get(Transaction.class).commit();
+                           return CompletableFuture.completedFuture(null);
+                       });
+                       unitOfWork.onRollback(context -> {
+                           context.resources(ProcessingContext.ResourceScope.SHARED)
+                                  .get(Transaction.class)
+                                  .rollback();
+                           return CompletableFuture.completedFuture(null);
+                       });
 
                        // TODO simple, yet massive, todo on changing the interceptor logic...T_T
 //            InterceptorChain chain = new DefaultInterceptorChain<>(unitOfWork, handlerInterceptors, handler);
-                       return unitOfWork.executeWithResult(c -> handler.handle(
-                               command));
+                       return unitOfWork.executeWithResult(c -> handler.handle(command));
 //            return asCommandResultMessage(unitOfWork.executeWithResult(
 //                    chain::proceed, rollbackConfiguration
 //            ));

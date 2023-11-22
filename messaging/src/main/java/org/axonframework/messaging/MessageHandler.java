@@ -35,6 +35,7 @@ public interface MessageHandler<T extends Message<?>> {
      * @throws Exception any exception that occurs during message handling
      */
     // TODO replace this operation for the new handle method
+    @Deprecated
     Object handleSync(T message) throws Exception;
 
     default CompletableFuture<Object> handle(T message) {

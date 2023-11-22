@@ -55,7 +55,7 @@ class SimpleEventHandlerInvokerTest {
     void singleEventPublication() throws Exception {
         EventMessage<?> event = createEvent();
 
-        testSubject.handle(event, Segment.ROOT_SEGMENT);
+        testSubject.handleSync(event, Segment.ROOT_SEGMENT);
 
         InOrder inOrder = inOrder(mockHandler1, mockHandler2);
         inOrder.verify(mockHandler1).handleSync(event);
@@ -68,7 +68,7 @@ class SimpleEventHandlerInvokerTest {
         List<? extends EventMessage<?>> events = createEvents(2);
 
         for (EventMessage<?> event : events) {
-            testSubject.handle(event, Segment.ROOT_SEGMENT);
+            testSubject.handleSync(event, Segment.ROOT_SEGMENT);
         }
 
         InOrder inOrder = inOrder(mockHandler1, mockHandler2);

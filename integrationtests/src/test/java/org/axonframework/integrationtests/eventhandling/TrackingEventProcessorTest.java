@@ -478,7 +478,7 @@ class TrackingEventProcessorTest {
         eventBus.publish(createEvent());
         testSubject.start();
         assertTrue(countDownLatch.await(5, TimeUnit.SECONDS), "Expected Unit of Work to have reached clean up phase");
-        verify(tokenStore).storeToken(any(), eq(testSubject.getName()), eq(0));
+        verify(tokenStore).storeTokenSync(any(), eq(testSubject.getName()), eq(0));
         assertNotNull(tokenStore.fetchToken(testSubject.getName(), 0));
     }
 
@@ -487,7 +487,7 @@ class TrackingEventProcessorTest {
         eventBus.publish(createEvent());
         testSubject.start();
         await().atMost(Duration.ofSeconds(5)).untilAsserted(
-                () -> verify(tokenStore).storeToken(any(), eq(testSubject.getName()), eq(0))
+                () -> verify(tokenStore).storeTokenSync(any(), eq(testSubject.getName()), eq(0))
         );
         testSubject.releaseSegment(0);
         await().atMost(Duration.ofSeconds(5)).untilAsserted(
@@ -523,7 +523,7 @@ class TrackingEventProcessorTest {
         );
         InOrder inOrder = inOrder(tokenStore);
         inOrder.verify(tokenStore, times(1)).extendClaim(eq(testSubject.getName()), anyInt());
-        inOrder.verify(tokenStore, atLeastOnce()).storeToken(any(), any(), anyInt());
+        inOrder.verify(tokenStore, atLeastOnce()).storeTokenSync(any(), any(), anyInt());
 
         assertNotNull(tokenStore.fetchToken(testSubject.getName(), 0));
         assertEquals(
@@ -566,7 +566,7 @@ class TrackingEventProcessorTest {
                 "Expected Unit of Work to have reached clean up phase for 2 messages"
         );
 
-        verify(tokenStore, atLeastOnce()).storeToken(any(), any(), anyInt());
+        verify(tokenStore, atLeastOnce()).storeTokenSync(any(), any(), anyInt());
         assertNotNull(tokenStore.fetchToken(testSubject.getName(), 0));
 
         assertEquals(
@@ -610,7 +610,7 @@ class TrackingEventProcessorTest {
                 "Expected Unit of Work to have reached clean up phase for 2 messages"
         );
 
-        verify(tokenStore, times(1)).storeToken(any(), any(), anyInt());
+        verify(tokenStore, times(1)).storeTokenSync(any(), any(), anyInt());
         assertNotNull(tokenStore.fetchToken(testSubject.getName(), 0));
 
         assertEquals(
@@ -648,7 +648,7 @@ class TrackingEventProcessorTest {
         );
 
         InOrder inOrder = inOrder(tokenStore);
-        inOrder.verify(tokenStore, times(1)).storeToken(any(), any(), anyInt());
+        inOrder.verify(tokenStore, times(1)).storeTokenSync(any(), any(), anyInt());
         inOrder.verify(tokenStore, times(1)).extendClaim(eq(testSubject.getName()), anyInt());
 
         assertNotNull(tokenStore.fetchToken(testSubject.getName(), 0));
@@ -688,7 +688,7 @@ class TrackingEventProcessorTest {
         eventBus.publish(createEvents(10));
         //noinspection resource
         TrackedEventMessage<?> firstEvent = eventBus.openStream(null).nextAvailable();
-        tokenStore.storeToken(firstEvent.trackingToken(), testSubject.getName(), 0);
+        tokenStore.storeTokenSync(firstEvent.trackingToken(), testSubject.getName(), 0);
         assertEquals(firstEvent.trackingToken(), tokenStore.fetchToken(testSubject.getName(), 0));
 
         List<EventMessage<?>> acknowledgedEvents = new CopyOnWriteArrayList<>();
@@ -858,7 +858,7 @@ class TrackingEventProcessorTest {
 
         eventBus.publish(events);
         assertTrue(countDownLatch.await(5, TimeUnit.SECONDS), "Expected Unit of Work to have reached clean up phase");
-        verify(tokenStore, atLeastOnce()).storeToken(any(), any(), anyInt());
+        verify(tokenStore, atLeastOnce()).storeTokenSync(any(), any(), anyInt());
         assertNotNull(tokenStore.fetchToken(testSubject.getName(), 0));
     }
 
@@ -903,7 +903,7 @@ class TrackingEventProcessorTest {
         Thread.sleep(200);
 
         assertTrue(countDownLatch.await(5, TimeUnit.SECONDS), "Expected Unit of Work to have reached clean up phase");
-        verify(tokenStore, atLeastOnce()).storeToken(any(), any(), anyInt());
+        verify(tokenStore, atLeastOnce()).storeTokenSync(any(), any(), anyInt());
         assertNull(tokenStore.fetchToken(testSubject.getName(), 0));
     }
 
@@ -1207,7 +1207,7 @@ class TrackingEventProcessorTest {
         doAnswer(i -> {
             firstRun.add(i.<TrackedEventMessage<?>>getArgument(0).trackingToken());
             return null;
-        }).when(eventHandlerInvoker).handle(any(), any());
+        }).when(eventHandlerInvoker).handleSync(any(), any());
 
         testSubject.start();
         assertWithin(1, TimeUnit.SECONDS, () -> assertEquals(4, firstRun.size()));
@@ -1216,7 +1216,7 @@ class TrackingEventProcessorTest {
         doAnswer(i -> {
             replayRun.add(i.<TrackedEventMessage<?>>getArgument(0).trackingToken());
             return null;
-        }).when(eventHandlerInvoker).handle(any(), any());
+        }).when(eventHandlerInvoker).handleSync(any(), any());
 
         testSubject.resetTokens();
         testSubject.start();
@@ -1256,7 +1256,7 @@ class TrackingEventProcessorTest {
         when(tokenStore.fetchToken("test", 3)).thenThrow(new UnableToClaimTokenException("Mock"));
 
         assertThrows(UnableToClaimTokenException.class, testSubject::resetTokens);
-        verify(tokenStore, never()).storeToken(isNull(), anyString(), anyInt());
+        verify(tokenStore, never()).storeTokenSync(isNull(), anyString(), anyInt());
     }
 
     @Test
@@ -1756,7 +1756,7 @@ class TrackingEventProcessorTest {
         CompletableFuture<Boolean> mergeResult = testSubject.mergeSegment(segmentId);
         assertTrue(mergeResult.join(), "Expected merge to succeed");
         verify(tokenStore).deleteToken("test", 3);
-        verify(tokenStore).storeToken(any(), eq("test"), eq(1));
+        verify(tokenStore).storeTokenSync(any(), eq("test"), eq(1));
     }
 
     /**
@@ -2045,7 +2045,7 @@ class TrackingEventProcessorTest {
             cdl.countDown();
             Thread.sleep(100);
             return i.callRealMethod();
-        }).when(eventHandlerInvoker).handle(any(), any());
+        }).when(eventHandlerInvoker).handleSync(any(), any());
         testSubject.start();
         assertWithin(1, TimeUnit.SECONDS, () -> assertFalse(testSubject.processingStatus().isEmpty()));
 
@@ -2124,10 +2124,10 @@ class TrackingEventProcessorTest {
 
     @Test
     void processorOnlyTriesToClaimAvailableSegments() {
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 0);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "test", 1);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 2);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 3);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 0);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "test", 1);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 2);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 3);
         when(tokenStore.fetchAvailableSegments(testSubject.getName()))
                 .thenReturn(Collections.singletonList(Segment.computeSegment(2, 0, 1, 2, 3)));
 
@@ -2205,7 +2205,7 @@ class TrackingEventProcessorTest {
         }));
         eventBus.publish(createEvent(0));
 
-        doAnswer(i -> i.callRealMethod()).when(tokenStore).storeToken(any(), anyString(), anyInt());
+        doAnswer(i -> i.callRealMethod()).when(tokenStore).storeTokenSync(any(), anyString(), anyInt());
         doAnswer(i -> i.callRealMethod()).when(tokenStore).initializeTokenSegments(anyString(), anyInt(), any());
 
         testSubject.start();

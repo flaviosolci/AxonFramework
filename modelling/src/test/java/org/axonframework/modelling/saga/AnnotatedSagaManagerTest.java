@@ -182,7 +182,7 @@ public class AnnotatedSagaManagerTest {
 
     private void handle(EventMessage<?> event) throws Exception {
         ResultMessage<?> resultMessage = DefaultUnitOfWork.startAndGet(event).executeWithResult(() -> {
-            testSubject.handle(event, Segment.ROOT_SEGMENT);
+            testSubject.handleSync(event, Segment.ROOT_SEGMENT);
             return null;
         });
         if (resultMessage.isExceptional()) {

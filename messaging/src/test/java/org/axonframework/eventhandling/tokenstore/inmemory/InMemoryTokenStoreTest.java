@@ -67,7 +67,7 @@ class InMemoryTokenStoreTest {
     @Test
     void updateToken() {
         testSubject.initializeTokenSegments("test1", 1);
-        testSubject.storeToken(new GlobalSequenceTrackingToken(1), "test1", 0);
+        testSubject.storeTokenSync(new GlobalSequenceTrackingToken(1), "test1", 0);
 
         assertEquals(new GlobalSequenceTrackingToken(1), testSubject.fetchToken("test1", 0));
     }
@@ -91,9 +91,9 @@ class InMemoryTokenStoreTest {
 
         assertNull(testSubject.fetchToken("test", 0));
 
-        testSubject.storeToken(new GlobalSequenceTrackingToken(1L), "proc1", 0);
-        testSubject.storeToken(new GlobalSequenceTrackingToken(2L), "proc1", 1);
-        testSubject.storeToken(new GlobalSequenceTrackingToken(2L), "proc2", 1);
+        testSubject.storeTokenSync(new GlobalSequenceTrackingToken(1L), "proc1", 0);
+        testSubject.storeTokenSync(new GlobalSequenceTrackingToken(2L), "proc1", 1);
+        testSubject.storeTokenSync(new GlobalSequenceTrackingToken(2L), "proc2", 1);
 
         {
             final int[] segments = testSubject.fetchSegments("proc1");
@@ -111,9 +111,9 @@ class InMemoryTokenStoreTest {
 
     @Test
     void queryAvailableSegments() {
-        testSubject.storeToken(new GlobalSequenceTrackingToken(1L), "proc1", 0);
-        testSubject.storeToken(new GlobalSequenceTrackingToken(2L), "proc1", 1);
-        testSubject.storeToken(new GlobalSequenceTrackingToken(2L), "proc2", 1);
+        testSubject.storeTokenSync(new GlobalSequenceTrackingToken(1L), "proc1", 0);
+        testSubject.storeTokenSync(new GlobalSequenceTrackingToken(2L), "proc1", 1);
+        testSubject.storeTokenSync(new GlobalSequenceTrackingToken(2L), "proc2", 1);
 
         {
             final List<Segment> segments = testSubject.fetchAvailableSegments("proc1");

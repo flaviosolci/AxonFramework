@@ -42,7 +42,6 @@ import org.axonframework.messaging.unitofwork.RollbackConfiguration;
 import org.axonframework.messaging.unitofwork.RollbackConfigurationType;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.monitoring.NoOpMessageMonitor;
-import org.axonframework.tracing.SpanFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -330,7 +329,7 @@ public class PooledStreamingEventProcessor extends AbstractEventProcessor implem
             eventHandlerInvoker().performReset(resetContext);
             // Update all tokens towards ReplayTokens
             IntStream.range(0, tokens.length)
-                     .forEach(i -> tokenStore.storeToken(
+                     .forEach(i -> tokenStore.storeTokenSync(
                              ReplayToken.createReplayToken(tokens[i], startPosition, resetContext),
                              getName(),
                              segments[i]
@@ -362,7 +361,6 @@ public class PooledStreamingEventProcessor extends AbstractEventProcessor implem
                           .transactionManager(transactionManager)
                           .executorService(workerExecutor)
                           .eventFilter(this::canHandle)
-                          .batchProcessor(this::processInUnitOfWork)
                           .segment(segment)
                           .initialToken(initialToken)
                           .batchSize(batchSize)
@@ -371,6 +369,7 @@ public class PooledStreamingEventProcessor extends AbstractEventProcessor implem
                                   segment.getSegmentId(), new TrackerStatus(segment, initialToken)
                           ))
                           .clock(clock)
+                          .eventHandlerInvoker(eventHandlerInvoker())
                           .build();
     }
 

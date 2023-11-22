@@ -37,7 +37,7 @@ class EventHandlerInvokerTest {
         }
 
         @Override
-        public void handle(@Nonnull EventMessage<?> message, @Nonnull Segment segment) throws Exception {
+        public void handleSync(@Nonnull EventMessage<?> message, @Nonnull Segment segment) throws Exception {
             // Do nothing
         }
     });

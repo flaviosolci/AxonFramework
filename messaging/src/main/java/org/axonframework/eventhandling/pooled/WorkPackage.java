@@ -17,7 +17,9 @@
 package org.axonframework.eventhandling.pooled;
 
 import org.axonframework.common.Assert;
+import org.axonframework.common.transaction.Transaction;
 import org.axonframework.common.transaction.TransactionManager;
+import org.axonframework.eventhandling.EventHandlerInvoker;
 import org.axonframework.eventhandling.EventMessage;
 import org.axonframework.eventhandling.GenericEventMessage;
 import org.axonframework.eventhandling.Segment;
@@ -26,7 +28,7 @@ import org.axonframework.eventhandling.TrackerStatus;
 import org.axonframework.eventhandling.TrackingToken;
 import org.axonframework.eventhandling.WrappedToken;
 import org.axonframework.eventhandling.tokenstore.TokenStore;
-import org.axonframework.messaging.unitofwork.BatchingUnitOfWork;
+import org.axonframework.messaging.unitofwork.AsyncUnitOfWork;
 import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +37,11 @@ import java.lang.invoke.MethodHandles;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,17 +52,17 @@ import java.util.function.UnaryOperator;
 
 /**
  * Defines the process of handling {@link EventMessage}s for a specific {@link Segment}. This entails validating if the
- * event can be handled through a {@link EventFilter} and after that processing a collection of events in the {@link
- * BatchProcessor}.
+ * event can be handled through a {@link EventFilter} and after that processing a collection of events in the
+ * {@link BatchProcessor}.
  * <p>
- * Events are received through the {@link #scheduleEvent(TrackedEventMessage)} operation, delegated by a {@link
- * Coordinator}. Receiving event(s) means this {@link WorkPackage} will be scheduled to process these events through an
- * {@link ExecutorService}. As there are local threads and outside threads invoking methods on the {@code WorkPackage},
- * several methods have threading notes describing what can invoke them safely.
+ * Events are received through the {@link #scheduleEvent(TrackedEventMessage)} operation, delegated by a
+ * {@link Coordinator}. Receiving event(s) means this {@link WorkPackage} will be scheduled to process these events
+ * through an {@link ExecutorService}. As there are local threads and outside threads invoking methods on the
+ * {@code WorkPackage}, several methods have threading notes describing what can invoke them safely.
  * <p>
- * Since the {@code WorkPackage} is in charge of a {@code Segment}, it maintains the claim on the matching {@link
- * TrackingToken}. In absence of new events, it will also {@link TokenStore#extendClaim(String, int)} on the {@code
- * TrackingToken}.
+ * Since the {@code WorkPackage} is in charge of a {@code Segment}, it maintains the claim on the matching
+ * {@link TrackingToken}. In absence of new events, it will also {@link TokenStore#extendClaim(String, int)} on the
+ * {@code TrackingToken}.
  *
  * @author Allard Buijze
  * @author Steven van Beelen
@@ -79,7 +81,7 @@ class WorkPackage {
     private final TransactionManager transactionManager;
     private final ExecutorService executorService;
     private final EventFilter eventFilter;
-    private final BatchProcessor batchProcessor;
+    private final EventHandlerInvoker eventHandlerInvoker;
     private final Segment segment;
     private final int batchSize;
     private final long claimExtensionThreshold;
@@ -115,7 +117,6 @@ class WorkPackage {
         this.transactionManager = builder.transactionManager;
         this.executorService = builder.executorService;
         this.eventFilter = builder.eventFilter;
-        this.batchProcessor = builder.batchProcessor;
         this.segment = builder.segment;
         this.lastDeliveredToken = builder.initialToken;
         this.batchSize = builder.batchSize;
@@ -128,6 +129,8 @@ class WorkPackage {
         this.lastConsumedToken = builder.initialToken;
         this.nextClaimExtension = new AtomicLong(now() + claimExtensionThreshold);
         this.processingEvents = new AtomicBoolean(false);
+
+        this.eventHandlerInvoker = builder.eventHandlerInvoker;
     }
 
     private long now() {
@@ -282,7 +285,8 @@ class WorkPackage {
             } catch (Exception e) {
                 logger.warn("Error while processing batch in Work Package [{}]-[{}]. Aborting Work Package...",
                             segment.getSegmentId(), name, e);
-                abort(e);
+                // TODO abort should be smart enough itself to check for completionExceptions when sharing the problem with the TrackerStatus
+                abort(e.getClass().isAssignableFrom(CompletionException.class) ? (Exception) e.getCause() : e);
             }
             scheduled.set(false);
             if (!processingQueue.isEmpty() || abortFlag.get() != null) {
@@ -293,7 +297,7 @@ class WorkPackage {
         });
     }
 
-    private void processEvents() throws Exception {
+    private void processEvents() {
         List<TrackedEventMessage<?>> eventBatch = new ArrayList<>();
         while (!isAbortTriggered() && eventBatch.size() < batchSize && !processingQueue.isEmpty()) {
             ProcessingEntry entry = processingQueue.poll();
@@ -309,15 +313,39 @@ class WorkPackage {
                          segment.getSegmentId(), name, eventBatch.size());
             try {
                 processingEvents.set(true);
-                UnitOfWork<TrackedEventMessage<?>> unitOfWork = new BatchingUnitOfWork<>(eventBatch);
-                unitOfWork.attachTransaction(transactionManager);
-                unitOfWork.resources().put(segmentIdResourceKey, segment.getSegmentId());
-                unitOfWork.resources().put(lastTokenResourceKey, lastConsumedToken);
-                unitOfWork.onPrepareCommit(u -> storeToken(lastConsumedToken));
-                unitOfWork.afterCommit(
-                        u -> segmentStatusUpdater.accept(status -> status.advancedTo(lastConsumedToken))
-                );
-                batchProcessor.processBatch(eventBatch, unitOfWork, Collections.singleton(segment));
+
+                AsyncUnitOfWork unitOfWork = new AsyncUnitOfWork();
+                unitOfWork.onPreInvocation(context -> {
+                    Transaction transaction = transactionManager.startTransaction();
+                    context.sharedResources().put(Transaction.class, transaction);
+                    context.sharedResources().put(segmentIdResourceKey, segment.getSegmentId());
+                    context.sharedResources().put(lastTokenResourceKey, lastConsumedToken);
+                    return CompletableFuture.completedFuture(null);
+                });
+                unitOfWork.onPrepareCommit(context -> storeToken(lastConsumedToken));
+                unitOfWork.onCommit(context -> {
+                    context.sharedResources().get(Transaction.class).commit();
+                    return CompletableFuture.completedFuture(null);
+                });
+                unitOfWork.onAfterCommit(context -> {
+                    segmentStatusUpdater.accept(status -> status.advancedTo(lastConsumedToken));
+                    return CompletableFuture.completedFuture(null);
+                });
+                unitOfWork.onRollback(context -> {
+                    context.sharedResources().get(Transaction.class)
+                           .rollback();
+                    return CompletableFuture.completedFuture(null);
+                });
+
+                // TODO -> Interceptors
+                // TODO -> MessageMonitors
+                // TODO -> SpanFactory
+                unitOfWork.onInvocation(context -> eventBatch.stream()
+                                                             .map(event -> eventHandlerInvoker.handle(event, segment))
+                                                             .reduce(CompletableFuture::allOf)
+                                                             .orElse(CompletableFuture.completedFuture(null)));
+                unitOfWork.execute()
+                          .join();// TODO: 22-11-2023 rethink this design
             } finally {
                 processingEvents.set(false);
             }
@@ -343,11 +371,13 @@ class WorkPackage {
         }
     }
 
-    private void storeToken(TrackingToken token) {
+    private CompletableFuture<Void> storeToken(TrackingToken token) {
         logger.debug("Work Package [{}]-[{}] will store token [{}].", name, segment.getSegmentId(), token);
-        tokenStore.storeToken(token, name, segment.getSegmentId());
-        lastStoredToken = token;
-        nextClaimExtension.set(now() + claimExtensionThreshold);
+        return tokenStore.storeToken(token, name, segment.getSegmentId())
+                         .thenAccept(result -> {
+                             lastStoredToken = token;
+                             nextClaimExtension.set(now() + claimExtensionThreshold);
+                         });
     }
 
     /**
@@ -381,14 +411,14 @@ class WorkPackage {
     }
 
     /**
-     * Returns the {@link TrackingToken} of the {@link TrackedEventMessage} that was delivered in the last {@link
-     * #scheduleEvent(TrackedEventMessage)} call.
+     * Returns the {@link TrackingToken} of the {@link TrackedEventMessage} that was delivered in the last
+     * {@link #scheduleEvent(TrackedEventMessage)} call.
      * <p>
      * <b>Threading note:</b> This method is only safe to call from {@link Coordinator} threads. The {@link
      * WorkPackage} threads must not rely on this method.
      *
-     * @return the {@link TrackingToken} of the last {@link TrackedEventMessage} that was delivered to this {@link
-     * WorkPackage}
+     * @return the {@link TrackingToken} of the last {@link TrackedEventMessage} that was delivered to this
+     * {@link WorkPackage}
      */
     public TrackingToken lastDeliveredToken() {
         return lastDeliveredToken;
@@ -417,7 +447,6 @@ class WorkPackage {
      * An aborted {@code WorkPackage} cannot be restarted.
      *
      * @param abortReason the reason to request the {@link WorkPackage} to abort
-     *
      * @return a {@link CompletableFuture} that completes with the first reason once the {@link WorkPackage} has stopped
      * processing
      */
@@ -513,13 +542,13 @@ class WorkPackage {
         private TransactionManager transactionManager;
         private ExecutorService executorService;
         private EventFilter eventFilter;
-        private BatchProcessor batchProcessor;
         private Segment segment;
         private TrackingToken initialToken;
         private int batchSize = 1;
         private long claimExtensionThreshold = 5000;
         private Consumer<UnaryOperator<TrackerStatus>> segmentStatusUpdater;
         private Clock clock = GenericEventMessage.clock;
+        private EventHandlerInvoker eventHandlerInvoker;
 
         /**
          * The {@code name} of the processor this {@link WorkPackage} processes events for.
@@ -533,8 +562,8 @@ class WorkPackage {
         }
 
         /**
-         * The storage solution of {@link TrackingToken}s. Used to extend claims on and update the {@code
-         * initialToken}.
+         * The storage solution of {@link TrackingToken}s. Used to extend claims on and update the
+         * {@code initialToken}.
          *
          * @param tokenStore the storage solution of {@link TrackingToken}s
          * @return the current Builder instance, for fluent interfacing
@@ -576,17 +605,6 @@ class WorkPackage {
          */
         Builder eventFilter(EventFilter eventFilter) {
             this.eventFilter = eventFilter;
-            return this;
-        }
-
-        /**
-         * A processor of a batch of events.
-         *
-         * @param batchProcessor processes a batch of events
-         * @return the current Builder instance, for fluent interfacing
-         */
-        Builder batchProcessor(BatchProcessor batchProcessor) {
-            this.batchProcessor = batchProcessor;
             return this;
         }
 
@@ -649,14 +667,20 @@ class WorkPackage {
         }
 
         /**
-         * Defines the {@link Clock} used for time dependent operations. For example used to update whenever this {@link
-         * WorkPackage} updated the {@link TrackingToken} claim last. Defaults to {@link GenericEventMessage#clock}.
+         * Defines the {@link Clock} used for time dependent operations. For example used to update whenever this
+         * {@link WorkPackage} updated the {@link TrackingToken} claim last. Defaults to
+         * {@link GenericEventMessage#clock}.
          *
          * @param clock the {@link Clock} used for time dependent operations
          * @return the current Builder instance, for fluent interfacing
          */
         Builder clock(Clock clock) {
             this.clock = clock;
+            return this;
+        }
+
+        Builder eventHandlerInvoker(EventHandlerInvoker eventHandlerInvoker) {
+            this.eventHandlerInvoker = eventHandlerInvoker;
             return this;
         }
 

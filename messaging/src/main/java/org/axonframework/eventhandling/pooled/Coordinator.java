@@ -18,6 +18,7 @@ package org.axonframework.eventhandling.pooled;
 
 import org.axonframework.common.stream.BlockingStream;
 import org.axonframework.common.transaction.TransactionManager;
+import org.axonframework.eventhandling.EventHandlerInvoker;
 import org.axonframework.eventhandling.GenericEventMessage;
 import org.axonframework.eventhandling.Segment;
 import org.axonframework.eventhandling.StreamingEventProcessor;
@@ -475,6 +476,13 @@ class Coordinator {
         Builder workPackageFactory(BiFunction<Segment, TrackingToken, WorkPackage> workPackageFactory) {
             this.workPackageFactory = workPackageFactory;
             return this;
+        }
+
+        @FunctionalInterface
+        interface WorkPackageFactory {
+
+            WorkPackage build(EventHandlerInvoker eventHandlerInvoker, Segment segment, TrackingToken trackingToken);
+
         }
 
         /**

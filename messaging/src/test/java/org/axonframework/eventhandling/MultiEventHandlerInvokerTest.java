@@ -75,19 +75,19 @@ class MultiEventHandlerInvokerTest {
 
     @Test
     void handleCallsCanHandleAndHandleOfAllDelegates() throws Exception {
-        testSubject.handle(testEventMessage, testSegment);
+        testSubject.handleSync(testEventMessage, testSegment);
 
         verify(mockedEventHandlerInvokerOne).canHandle(testEventMessage, testSegment);
-        verify(mockedEventHandlerInvokerOne).handle(testEventMessage, testSegment);
+        verify(mockedEventHandlerInvokerOne).handleSync(testEventMessage, testSegment);
         verify(mockedEventHandlerInvokerTwo).canHandle(testEventMessage, testSegment);
-        verify(mockedEventHandlerInvokerTwo).handle(testEventMessage, testSegment);
+        verify(mockedEventHandlerInvokerTwo).handleSync(testEventMessage, testSegment);
     }
 
     @Test
     void handleThrowsExceptionIfDelegatesThrowAnException() throws Exception {
-        doThrow(new RuntimeException()).when(mockedEventHandlerInvokerTwo).handle(testEventMessage, testSegment);
+        doThrow(new RuntimeException()).when(mockedEventHandlerInvokerTwo).handleSync(testEventMessage, testSegment);
 
-        assertThrows(RuntimeException.class, () -> testSubject.handle(testEventMessage, testSegment));
+        assertThrows(RuntimeException.class, () -> testSubject.handleSync(testEventMessage, testSegment));
     }
 
     @Test
@@ -144,15 +144,15 @@ class MultiEventHandlerInvokerTest {
         when(mockedEventHandlerInvokerTwo.supportsReset()).thenReturn(false);
 
         assertTrue(testSubject.canHandle(testEventMessage, testSegment));
-        testSubject.handle(testEventMessage, testSegment);
-        testSubject.handle(replayMessage, testSegment);
+        testSubject.handleSync(testEventMessage, testSegment);
+        testSubject.handleSync(replayMessage, testSegment);
 
         InOrder inOrder = inOrder(mockedEventHandlerInvokerOne, mockedEventHandlerInvokerTwo);
-        inOrder.verify(mockedEventHandlerInvokerOne).handle(testEventMessage, testSegment);
-        inOrder.verify(mockedEventHandlerInvokerTwo).handle(testEventMessage, testSegment);
-        inOrder.verify(mockedEventHandlerInvokerOne).handle(replayMessage, testSegment);
+        inOrder.verify(mockedEventHandlerInvokerOne).handleSync(testEventMessage, testSegment);
+        inOrder.verify(mockedEventHandlerInvokerTwo).handleSync(testEventMessage, testSegment);
+        inOrder.verify(mockedEventHandlerInvokerOne).handleSync(replayMessage, testSegment);
 
-        verify(mockedEventHandlerInvokerTwo, never()).handle(eq(replayMessage), any());
+        verify(mockedEventHandlerInvokerTwo, never()).handleSync(eq(replayMessage), any());
     }
 
     @Test

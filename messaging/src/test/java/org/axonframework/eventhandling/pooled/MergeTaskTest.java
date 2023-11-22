@@ -98,7 +98,7 @@ class MergeTaskTest {
 
         verify(tokenStore).fetchSegments(PROCESSOR_NAME);
         verify(tokenStore).deleteToken(PROCESSOR_NAME, SEGMENT_TO_BE_MERGED);
-        verify(tokenStore).storeToken(mergedTokenCaptor.capture(), eq(PROCESSOR_NAME), eq(SEGMENT_TO_MERGE));
+        verify(tokenStore).storeTokenSync(mergedTokenCaptor.capture(), eq(PROCESSOR_NAME), eq(SEGMENT_TO_MERGE));
         TrackingToken resultToken = mergedTokenCaptor.getValue();
         assertTrue(resultToken.getClass().isAssignableFrom(MergedTrackingToken.class));
         assertEquals(testTokenToMerge, ((MergedTrackingToken) resultToken).lowerSegmentToken());
@@ -122,7 +122,7 @@ class MergeTaskTest {
 
         verify(tokenStore).fetchSegments(PROCESSOR_NAME);
         verify(tokenStore).deleteToken(PROCESSOR_NAME, SEGMENT_TO_BE_MERGED);
-        verify(tokenStore).storeToken(mergedTokenCaptor.capture(), eq(PROCESSOR_NAME), eq(SEGMENT_TO_MERGE));
+        verify(tokenStore).storeTokenSync(mergedTokenCaptor.capture(), eq(PROCESSOR_NAME), eq(SEGMENT_TO_MERGE));
         TrackingToken resultToken = mergedTokenCaptor.getValue();
         assertTrue(resultToken.getClass().isAssignableFrom(MergedTrackingToken.class));
         assertEquals(testTokenToMerge, ((MergedTrackingToken) resultToken).lowerSegmentToken());
@@ -150,7 +150,7 @@ class MergeTaskTest {
 
         verify(tokenStore).fetchSegments(PROCESSOR_NAME);
         verify(tokenStore).deleteToken(PROCESSOR_NAME, SEGMENT_TO_BE_MERGED);
-        verify(tokenStore).storeToken(mergedTokenCaptor.capture(), eq(PROCESSOR_NAME), eq(SEGMENT_TO_MERGE));
+        verify(tokenStore).storeTokenSync(mergedTokenCaptor.capture(), eq(PROCESSOR_NAME), eq(SEGMENT_TO_MERGE));
         TrackingToken resultToken = mergedTokenCaptor.getValue();
         assertTrue(resultToken.getClass().isAssignableFrom(MergedTrackingToken.class));
         assertEquals(testTokenToMerge, ((MergedTrackingToken) resultToken).lowerSegmentToken());

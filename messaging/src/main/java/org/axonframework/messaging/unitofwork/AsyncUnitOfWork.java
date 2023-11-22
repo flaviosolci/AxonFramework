@@ -60,6 +60,38 @@ public class AsyncUnitOfWork implements ProcessingLifecycle {
         return this;
     }
 
+    public AsyncUnitOfWork onPreInvocation(Function<ProcessingContext, CompletableFuture<?>> action) {
+        return on(Phase.PRE_INVOCATION, action);
+    }
+
+    public AsyncUnitOfWork onInvocation(Function<ProcessingContext, CompletableFuture<?>> action) {
+        return on(Phase.INVOCATION, action);
+    }
+
+    public AsyncUnitOfWork onPostInvocation(Function<ProcessingContext, CompletableFuture<?>> action) {
+        return on(Phase.POST_INVOCATION, action);
+    }
+
+    public AsyncUnitOfWork onPrepareCommit(Function<ProcessingContext, CompletableFuture<?>> action) {
+        return on(Phase.PREPARE_COMMIT, action);
+    }
+
+    public AsyncUnitOfWork onCommit(Function<ProcessingContext, CompletableFuture<?>> action) {
+        return on(Phase.COMMIT, action);
+    }
+
+    public AsyncUnitOfWork onAfterCommit(Function<ProcessingContext, CompletableFuture<?>> action) {
+        return on(Phase.AFTER_COMMIT, action);
+    }
+
+    public AsyncUnitOfWork onRollback(Function<ProcessingContext, CompletableFuture<?>> action) {
+        return on(Phase.ROLLBACK, action);
+    }
+
+    public AsyncUnitOfWork onCompleted(Function<ProcessingContext, CompletableFuture<?>> action) {
+        return on(Phase.COMPLETED, action);
+    }
+
     @Override
     public ProcessingLifecycle whenComplete(Consumer<ProcessingContext> action) {
         return context.whenComplete(action);
@@ -93,7 +125,7 @@ public class AsyncUnitOfWork implements ProcessingLifecycle {
                 result.completeExceptionally(e);
             }
         }));
-        return execute().thenCombine(result, (v, r) -> r);
+        return execute().thenCombine(result, (executeResult, invocationResult) -> invocationResult);
     }
 
     public ProcessingContext processingContext() {

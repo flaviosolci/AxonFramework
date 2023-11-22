@@ -139,7 +139,7 @@ class MergeTask extends CoordinatorTask {
 
         transactionManager.executeInTransaction(() -> {
             tokenStore.deleteToken(name, tokenToDelete);
-            tokenStore.storeToken(mergedToken, name, mergedSegment.getSegmentId());
+            tokenStore.storeTokenSync(mergedToken, name, mergedSegment.getSegmentId());
             tokenStore.releaseClaim(name, mergedSegment.getSegmentId());
         });
         logger.info("Processor [{}] successfully merged {} with {} into {}.",

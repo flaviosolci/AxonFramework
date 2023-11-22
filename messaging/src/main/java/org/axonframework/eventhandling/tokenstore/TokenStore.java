@@ -23,6 +23,7 @@ import org.axonframework.eventhandling.TrackingToken;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -78,7 +79,7 @@ public interface TokenStore {
                                          @Nullable TrackingToken initialToken)
             throws UnableToClaimTokenException {
         for (int segment = 0; segment < segmentCount; segment++) {
-            storeToken(initialToken, processorName, segment);
+            storeTokenSync(initialToken, processorName, segment);
             releaseClaim(processorName, segment);
         }
     }
@@ -100,8 +101,19 @@ public interface TokenStore {
      * @param segment       The index of the segment for which to store the token
      * @throws UnableToClaimTokenException when the token being updated has been claimed by another process.
      */
-    void storeToken(@Nullable TrackingToken token, @Nonnull String processorName, int segment)
+    @Deprecated
+    void storeTokenSync(@Nullable TrackingToken token, @Nonnull String processorName, int segment)
             throws UnableToClaimTokenException;
+
+    default CompletableFuture<Void> storeToken(@Nullable TrackingToken token, @Nonnull String processorName, int segment) {
+        // TODO: 17-11-2023 proper impl
+        try {
+            storeTokenSync(token, processorName, segment);
+        } catch (UnableToClaimTokenException utcte) {
+            return CompletableFuture.failedFuture(utcte);
+        }
+        return CompletableFuture.completedFuture(null);
+    }
 
     /**
      * Returns the last stored {@link TrackingToken token} for the given {@code processorName} and {@code segment}.

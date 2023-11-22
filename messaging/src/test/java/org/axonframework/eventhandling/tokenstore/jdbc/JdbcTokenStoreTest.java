@@ -101,7 +101,7 @@ class JdbcTokenStoreTest {
 
         transactionManager.executeInTransaction(() -> assertNull(tokenStore.fetchToken("test", 0)));
         TrackingToken token = new GlobalSequenceTrackingToken(1L);
-        transactionManager.executeInTransaction(() -> tokenStore.storeToken(token, "test", 0));
+        transactionManager.executeInTransaction(() -> tokenStore.storeTokenSync(token, "test", 0));
         transactionManager.executeInTransaction(() -> assertEquals(token, tokenStore.fetchToken("test", 0)));
     }
 
@@ -111,7 +111,7 @@ class JdbcTokenStoreTest {
         tokenStore.initializeTokenSegments("test", 1);
         tokenStore.fetchToken("test", 0);
 
-        tokenStore.storeToken(null, "test", 0);
+        tokenStore.storeTokenSync(null, "test", 0);
 
         TrackingToken token = tokenStore.fetchToken("test", 0);
         assertNull(token);
@@ -265,13 +265,13 @@ class JdbcTokenStoreTest {
         transactionManager.executeInTransaction(() -> assertNull(tokenStore.fetchToken("test", 0)));
 
         transactionManager.executeInTransaction(
-                () -> tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "proc1", 0)
+                () -> tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "proc1", 0)
         );
         transactionManager.executeInTransaction(
-                () -> tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "proc1", 1)
+                () -> tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "proc1", 1)
         );
         transactionManager.executeInTransaction(
-                () -> tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "proc2", 1)
+                () -> tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "proc2", 1)
         );
     }
 
@@ -282,7 +282,7 @@ class JdbcTokenStoreTest {
 
         assertNull(tokenStore.fetchToken("test", 0));
         TrackingToken token = new GlobalSequenceTrackingToken(1L);
-        tokenStore.storeToken(token, "test", 0);
+        tokenStore.storeTokenSync(token, "test", 0);
         assertEquals(token, tokenStore.fetchToken("test", 0));
     }
 
@@ -326,7 +326,7 @@ class JdbcTokenStoreTest {
 
         try {
             transactionManager.executeInTransaction(
-                    () -> tokenStore.storeToken(new GlobalSequenceTrackingToken(0), "stealing", 0));
+                    () -> tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(0), "stealing", 0));
             fail("Expected UnableToClaimTokenException");
         } catch (UnableToClaimTokenException e) {
             // expected
@@ -334,7 +334,7 @@ class JdbcTokenStoreTest {
         transactionManager.executeInTransaction(() -> tokenStore.releaseClaim("stealing", 0));
         // claim should still be on stealingTokenStore:
         transactionManager.executeInTransaction(
-                () -> stealingTokenStore.storeToken(new GlobalSequenceTrackingToken(1), "stealing", 0));
+                () -> stealingTokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1), "stealing", 0));
     }
 
     @Test
@@ -343,13 +343,13 @@ class JdbcTokenStoreTest {
 
         transactionManager.executeInTransaction(() -> {
             tokenStore.fetchToken("multi", 0);
-            tokenStore.storeToken(new GlobalSequenceTrackingToken(1), "multi", 0);
+            tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1), "multi", 0);
         });
 
         transactionManager.executeInTransaction(() -> {
             TrackingToken actual = tokenStore.fetchToken("multi", 0);
             assertEquals(new GlobalSequenceTrackingToken(1), actual);
-            tokenStore.storeToken(new GlobalSequenceTrackingToken(2), "multi", 0);
+            tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2), "multi", 0);
         });
 
         transactionManager.executeInTransaction(() -> {

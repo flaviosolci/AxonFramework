@@ -85,10 +85,10 @@ public class MultiEventHandlerInvoker implements EventHandlerInvoker {
     }
 
     @Override
-    public void handle(@Nonnull EventMessage<?> message, @Nonnull Segment segment) throws Exception {
+    public void handleSync(@Nonnull EventMessage<?> message, @Nonnull Segment segment) throws Exception {
         for (EventHandlerInvoker i : delegates) {
             if (canHandle(i, message, segment)) {
-                i.handle(message, segment);
+                i.handleSync(message, segment);
             }
         }
     }

@@ -17,6 +17,7 @@
 package org.axonframework.eventhandling;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
@@ -60,7 +61,18 @@ public interface EventHandlerInvoker {
      * @param segment The segment for which to handle the message
      * @throws Exception when an exception occurs while handling the message
      */
-    void handle(@Nonnull EventMessage<?> message, @Nonnull Segment segment) throws Exception;
+    @Deprecated
+    void handleSync(@Nonnull EventMessage<?> message, @Nonnull Segment segment) throws Exception;
+
+    default CompletableFuture<Void> handle(@Nonnull EventMessage<?> message, @Nonnull Segment segment) {
+        try {
+            // TODO: 17-11-2023 proper impl
+            handleSync(message, segment);
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
 
     /**
      * Indicates whether the handlers managed by this invoker support a reset.

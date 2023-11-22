@@ -34,7 +34,6 @@ import org.axonframework.messaging.Message;
 import org.axonframework.messaging.StreamableMessageSource;
 import org.axonframework.messaging.unitofwork.CurrentUnitOfWork;
 import org.axonframework.messaging.unitofwork.RollbackConfigurationType;
-import org.axonframework.tracing.SpanFactory;
 import org.axonframework.tracing.TestSpanFactory;
 import org.axonframework.utils.DelegateScheduledExecutorService;
 import org.axonframework.utils.InMemoryStreamableEventSource;
@@ -238,7 +237,7 @@ class PooledStreamingEventProcessorTest {
                     countDownLatch.countDown();
                     return null;
                 }
-        ).when(stubEventHandler).handle(any(), any());
+        ).when(stubEventHandler).handleSync(any(), any());
 
         List<EventMessage<Integer>> events = IntStream.range(0, 8)
                                                       .mapToObj(GenericEventMessage::new)
@@ -275,7 +274,7 @@ class PooledStreamingEventProcessorTest {
                     countDownLatch.countDown();
                     return null;
                 }
-        ).when(stubEventHandler).handle(any(), any());
+        ).when(stubEventHandler).handleSync(any(), any());
 
         List<EventMessage<Integer>> events = IntStream.range(0, 8)
                                                       .mapToObj(GenericEventMessage::new)
@@ -287,10 +286,10 @@ class PooledStreamingEventProcessorTest {
 
     @Test
     void processorOnlyTriesToClaimAvailableSegments() {
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 0);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(2L), "test", 1);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 2);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(1L), "test", 3);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 0);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(2L), "test", 1);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 2);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(1L), "test", 3);
         when(tokenStore.fetchAvailableSegments(testSubject.getName()))
                 .thenReturn(Collections.singletonList(Segment.computeSegment(2, 0, 1, 2, 3)));
 
@@ -364,7 +363,7 @@ class PooledStreamingEventProcessorTest {
         doThrow(new RuntimeException("Simulating worker failure"))
                 .doNothing()
                 .when(stubEventHandler)
-                .handle(argThat(em -> em.getIdentifier().equals(events.get(2).getIdentifier())), any());
+                .handleSync(argThat(em -> em.getIdentifier().equals(events.get(2).getIdentifier())), any());
 
         testSubject.start();
 
@@ -377,7 +376,7 @@ class PooledStreamingEventProcessorTest {
 
         assertWithin(1, TimeUnit.SECONDS, () -> {
             try {
-                verify(stubEventHandler).handle(
+                verify(stubEventHandler).handleSync(
                         argThat(em -> em.getIdentifier().equals(events.get(2).getIdentifier())),
                         argThat(s -> s.getSegmentId() == events.get(2).getPayload())
                 );
@@ -436,7 +435,7 @@ class PooledStreamingEventProcessorTest {
         when(stubEventHandler.canHandleType(Integer.class)).thenReturn(false);
 
         tokenStore.initializeTokenSegments(testSubject.getName(), 2);
-        tokenStore.storeToken(new GlobalSequenceTrackingToken(0), testSubject.getName(), 1);
+        tokenStore.storeTokenSync(new GlobalSequenceTrackingToken(0), testSubject.getName(), 1);
 
         testSubject.start();
 
@@ -500,7 +499,7 @@ class PooledStreamingEventProcessorTest {
 
         //noinspection unchecked
         ArgumentCaptor<EventMessage<?>> handledEventsCaptor = ArgumentCaptor.forClass(EventMessage.class);
-        verify(stubEventHandler, timeout(500).times(2)).handle(handledEventsCaptor.capture(), any());
+        verify(stubEventHandler, timeout(500).times(2)).handleSync(handledEventsCaptor.capture(), any());
         List<EventMessage<?>> handledEvents = handledEventsCaptor.getAllValues();
         assertEquals(2, handledEvents.size());
         for (EventMessage<?> validatedEvent : handledEvents) {
@@ -590,7 +589,7 @@ class PooledStreamingEventProcessorTest {
         // Use CountDownLatch to block worker threads from actually doing work, and thus shutting down successfully.
         CountDownLatch latch = new CountDownLatch(1);
         doAnswer(i -> latch.await(10, TimeUnit.MILLISECONDS)).when(stubEventHandler)
-                                                             .handle(any(), any());
+                                                             .handleSync(any(), any());
 
         testSubject.start();
 
@@ -1287,7 +1286,7 @@ class PooledStreamingEventProcessorTest {
         doAnswer(invocation -> {
             Thread.sleep(1000);
             return null;
-        }).when(stubEventHandler).handle(any(), any());
+        }).when(stubEventHandler).handleSync(any(), any());
     }
 
     @Test
@@ -1303,7 +1302,7 @@ class PooledStreamingEventProcessorTest {
             isWaiting.set(true);
             return handleLatch.await(5, TimeUnit.SECONDS);
         }).when(stubEventHandler)
-          .handle(any(), any());
+          .handleSync(any(), any());
 
         List<EventMessage<Integer>> events = IntStream.range(0, 42)
                                                       .mapToObj(GenericEventMessage::new)
@@ -1320,7 +1319,7 @@ class PooledStreamingEventProcessorTest {
 
         // As the WorkPackage is blocked, we can verify if the claim is extended, but not stored.
         verify(tokenStore, timeout(5000)).extendClaim(PROCESSOR_NAME, 0);
-        verify(tokenStore, never()).storeToken(any(), eq(PROCESSOR_NAME), eq(0));
+        verify(tokenStore, never()).storeTokenSync(any(), eq(PROCESSOR_NAME), eq(0));
 
         // Unblock the WorkPackage after successful validation
         handleLatch.countDown();
@@ -1330,7 +1329,7 @@ class PooledStreamingEventProcessorTest {
                .atMost(Duration.ofSeconds(5))
                .until(() -> testSubject.processingStatus().get(0).isCaughtUp());
         // Validate the token is stored
-        verify(tokenStore, timeout(5000).atLeastOnce()).storeToken(any(), eq(PROCESSOR_NAME), eq(0));
+        verify(tokenStore, timeout(5000).atLeastOnce()).storeTokenSync(any(), eq(PROCESSOR_NAME), eq(0));
     }
 
     @Test
@@ -1350,7 +1349,7 @@ class PooledStreamingEventProcessorTest {
             isWaiting.set(true);
             return handleLatch.await(5, TimeUnit.SECONDS);
         }).when(stubEventHandler)
-          .handle(any(), any());
+          .handleSync(any(), any());
 
         List<EventMessage<Integer>> events = IntStream.range(0, 42)
                                                       .mapToObj(GenericEventMessage::new)
@@ -1367,7 +1366,7 @@ class PooledStreamingEventProcessorTest {
 
         // As the WorkPackage is blocked, we can verify if the claim is extended, but not stored.
         verify(tokenStore, timeout(5000)).extendClaim(PROCESSOR_NAME, 0);
-        verify(tokenStore, never()).storeToken(any(), eq(PROCESSOR_NAME), eq(0));
+        verify(tokenStore, never()).storeTokenSync(any(), eq(PROCESSOR_NAME), eq(0));
 
         // Although the WorkPackage is waiting, the Coordinator should in the meantime fail with extending the claim.
         // This updates the processing status of the WorkPackage.

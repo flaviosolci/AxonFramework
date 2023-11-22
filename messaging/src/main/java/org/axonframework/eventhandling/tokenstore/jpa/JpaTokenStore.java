@@ -128,7 +128,7 @@ public class JpaTokenStore implements TokenStore {
     }
 
     @Override
-    public void storeToken(@Nullable TrackingToken token, @Nonnull String processorName, int segment) {
+    public void storeTokenSync(@Nullable TrackingToken token, @Nonnull String processorName, int segment) {
         EntityManager entityManager = entityManagerProvider.getEntityManager();
         TokenEntry tokenToStore = new TokenEntry(processorName, segment, token, serializer);
         byte[] tokenDataToStore =

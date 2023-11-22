@@ -35,7 +35,6 @@ import org.axonframework.messaging.unitofwork.RollbackConfigurationType;
 import org.axonframework.messaging.unitofwork.UnitOfWork;
 import org.axonframework.monitoring.MessageMonitor;
 import org.axonframework.monitoring.NoOpMessageMonitor;
-import org.axonframework.tracing.SpanFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -162,17 +161,17 @@ public class TrackingEventProcessor extends AbstractEventProcessor implements St
                 Instant startTime = now();
                 TrackingToken lastToken = unitOfWork.getResource(lastTokenResourceKey);
                 if (storeTokenBeforeProcessing) {
-                    tokenStore.storeToken(lastToken,
-                                          builder.name,
-                                          unitOfWork.getResource(segmentIdResourceKey));
+                    tokenStore.storeTokenSync(lastToken,
+                                              builder.name,
+                                              unitOfWork.getResource(segmentIdResourceKey));
                 } else {
                     tokenStore.extendClaim(getName(), unitOfWork.getResource(segmentIdResourceKey));
                 }
                 unitOfWork.onPrepareCommit(uow -> {
                     if (!storeTokenBeforeProcessing) {
-                        tokenStore.storeToken(lastToken,
-                                              builder.name,
-                                              unitOfWork.getResource(segmentIdResourceKey));
+                        tokenStore.storeTokenSync(lastToken,
+                                                  builder.name,
+                                                  unitOfWork.getResource(segmentIdResourceKey));
                     } else if (now().isAfter(startTime.plusMillis(eventAvailabilityTimeout))) {
                         tokenStore.extendClaim(getName(), unitOfWork.getResource(segmentIdResourceKey));
                     }
@@ -467,7 +466,7 @@ public class TrackingEventProcessor extends AbstractEventProcessor implements St
                 // The token is updated but didn't contain events for this segment. So, we update the token position.
                 TrackingToken finalLastToken = lastToken;
                 transactionManager.executeInTransaction(
-                        () -> tokenStore.storeToken(finalLastToken, getName(), segment.getSegmentId())
+                        () -> tokenStore.storeTokenSync(finalLastToken, getName(), segment.getSegmentId())
                 );
                 return;
             }
@@ -693,9 +692,9 @@ public class TrackingEventProcessor extends AbstractEventProcessor implements St
             eventHandlerInvoker().performReset(resetContext);
 
             for (int i = 0; i < tokens.length; i++) {
-                tokenStore.storeToken(ReplayToken.createReplayToken(tokens[i], startPosition, resetContext),
-                                      getName(),
-                                      segments[i]);
+                tokenStore.storeTokenSync(ReplayToken.createReplayToken(tokens[i], startPosition, resetContext),
+                                          getName(),
+                                          segments[i]);
             }
         });
     }
@@ -1488,7 +1487,7 @@ public class TrackingEventProcessor extends AbstractEventProcessor implements St
                                         ? new MergedTrackingToken(otherToken, status.getInternalTrackingToken())
                                         : new MergedTrackingToken(status.getInternalTrackingToken(), otherToken);
 
-            tokenStore.storeToken(mergedToken, getName(), newSegment.getSegmentId());
+            tokenStore.storeTokenSync(mergedToken, getName(), newSegment.getSegmentId());
             shouldRunLauncherImmediately.set(true);
             return true;
         }

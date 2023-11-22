@@ -223,7 +223,7 @@ public class JdbcTokenStore implements TokenStore {
     }
 
     @Override
-    public void storeToken(TrackingToken token, @Nonnull String processorName, int segment)
+    public void storeTokenSync(TrackingToken token, @Nonnull String processorName, int segment)
             throws UnableToClaimTokenException {
         Connection connection = getConnection();
         try {
