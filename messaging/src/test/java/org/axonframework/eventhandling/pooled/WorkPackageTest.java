@@ -35,6 +35,7 @@ import org.axonframework.utils.DelegateScheduledExecutorService;
 import org.junit.jupiter.api.*;
 import org.mockito.*;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -48,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import javax.annotation.Nonnull;
 
+import static org.awaitility.Awaitility.await;
 import static org.axonframework.utils.AssertUtils.assertWithin;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -287,7 +289,9 @@ class WorkPackageTest {
         assertEquals(expectedEvent.trackingToken(), ((TrackedEventMessage<?>) processedEvents.get(0)).trackingToken());
         // We  need to verify the TokenStore#storeToken operation, otherwise the extendClaim verify will not succeed.
         ArgumentCaptor<TrackingToken> tokenCaptor = ArgumentCaptor.forClass(TrackingToken.class);
-        verify(tokenStore).storeTokenSync(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
+        await().atMost(Duration.ofSeconds(5L)).untilAsserted(
+                () -> verify(tokenStore).storeToken(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()))
+        );
         assertEquals(expectedToken, tokenCaptor.getValue());
 
         assertWithin(
@@ -469,7 +473,7 @@ class WorkPackageTest {
         assertEquals(expectedEvent.trackingToken(), ((TrackedEventMessage<?>) processedEvents.get(0)).trackingToken());
 
         ArgumentCaptor<TrackingToken> tokenCaptor = ArgumentCaptor.forClass(TrackingToken.class);
-        verify(tokenStore).storeTokenSync(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
+        verify(tokenStore).storeToken(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
         assertEquals(expectedToken, tokenCaptor.getValue());
 
         assertEquals(1, trackerStatusUpdates.size());
@@ -505,7 +509,7 @@ class WorkPackageTest {
                      ((TrackedEventMessage<?>) processedEvents.get(1)).trackingToken());
 
         ArgumentCaptor<TrackingToken> tokenCaptor = ArgumentCaptor.forClass(TrackingToken.class);
-        verify(tokenStore).storeTokenSync(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId()));
+        await().atMost(Duration.ofSeconds(5L)).untilAsserted(()-> verify(tokenStore).storeToken(tokenCaptor.capture(), eq(PROCESSOR_NAME), eq(segment.getSegmentId())));
         assertEquals(expectedToken, tokenCaptor.getValue());
 
         assertFalse(trackerStatusUpdates.isEmpty());

@@ -1228,6 +1228,14 @@ class PooledStreamingEventProcessorTest {
         assertWithin(
                 5, TimeUnit.SECONDS,
                 () -> {
+                    assertFalse(testSubject.processingStatus().isEmpty());
+                    System.out.println(testSubject.processingStatus().keySet());
+                }
+        );
+        assertWithin(
+                5, TimeUnit.SECONDS,
+                () -> {
+                    System.out.println(testSubject.processingStatus().keySet());
                     assertTrue(testSubject.processingStatus().get(0).isCaughtUp());
                 }
         );
