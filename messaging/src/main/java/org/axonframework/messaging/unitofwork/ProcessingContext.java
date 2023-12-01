@@ -8,11 +8,11 @@ public interface ProcessingContext extends ProcessingLifecycle {
 
     Resources resources(ResourceScope scope);
 
-    default Resources localResources(ResourceScope scope) {
+    default Resources localResources() {
         return resources(ResourceScope.LOCAL);
     }
 
-    default Resources inheritedResources(ResourceScope scope) {
+    default Resources inheritedResources() {
         return resources(ResourceScope.INHERITED);
     }
 
