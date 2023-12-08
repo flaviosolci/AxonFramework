@@ -221,7 +221,7 @@ public class SimpleCommandBus implements CommandBus {
 
                        // TODO simple, yet massive, todo on changing the interceptor logic...T_T
 //            InterceptorChain chain = new DefaultInterceptorChain<>(unitOfWork, handlerInterceptors, handler);
-                       return unitOfWork.executeWithResult(c -> handler.handle(command));
+                       return unitOfWork.executeWithResult(c -> handler.handle(command, unitOfWork.processingContext()));
 //            return asCommandResultMessage(unitOfWork.executeWithResult(
 //                    chain::proceed, rollbackConfiguration
 //            ));
