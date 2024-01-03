@@ -26,9 +26,11 @@ import org.axonframework.messaging.annotation.HandlerDefinition;
 import org.axonframework.messaging.annotation.MessageHandlerInterceptorMemberChain;
 import org.axonframework.messaging.annotation.MessageHandlingMember;
 import org.axonframework.messaging.annotation.ParameterResolverFactory;
+import org.axonframework.messaging.unitofwork.ProcessingContext;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Adapter that turns any bean with {@link EventHandler} annotated methods into an {@link EventMessageHandler}.
@@ -53,8 +55,8 @@ public class AnnotationEventHandlerAdapter implements EventMessageHandler {
     }
 
     /**
-     * Wraps the given {@code annotatedEventListener}, allowing it to be subscribed to an Event Bus. The given {@code
-     * parameterResolverFactory} is used to resolve parameter values for handler methods.
+     * Wraps the given {@code annotatedEventListener}, allowing it to be subscribed to an Event Bus. The given
+     * {@code parameterResolverFactory} is used to resolve parameter values for handler methods.
      *
      * @param annotatedEventListener   the annotated event listener
      * @param parameterResolverFactory the strategy for resolving handler method parameter values
@@ -67,9 +69,9 @@ public class AnnotationEventHandlerAdapter implements EventMessageHandler {
     }
 
     /**
-     * Wraps the given {@code annotatedEventListener}, allowing it to be subscribed to an Event Bus. The given {@code
-     * parameterResolverFactory} is used to resolve parameter values for handler methods. Handler definition is used to
-     * create concrete handlers.
+     * Wraps the given {@code annotatedEventListener}, allowing it to be subscribed to an Event Bus. The given
+     * {@code parameterResolverFactory} is used to resolve parameter values for handler methods. Handler definition is
+     * used to create concrete handlers.
      *
      * @param annotatedEventListener   the annotated event listener
      * @param parameterResolverFactory the strategy for resolving handler method parameter values
@@ -100,6 +102,20 @@ public class AnnotationEventHandlerAdapter implements EventMessageHandler {
             return interceptor.handle(event, annotatedEventListener, handler.get());
         }
         return null;
+    }
+
+    @Override
+    public CompletableFuture<?> handle(EventMessage<?> event, ProcessingContext processingContext) {
+        return inspector.getHandlers(listenerType)
+                        .filter(h -> h.canHandle(event))
+                        .findFirst()
+                        .map(handler -> handler.handle(event, annotatedEventListener))
+                        .orElseThrow(() -> new RuntimeException("what's happening"));
+        // TODO implement interceptor support here as well
+//        if (handler.isPresent()) {
+//            MessageHandlerInterceptorMemberChain<Object> interceptor = inspector.chainedInterceptor(listenerType);
+//            return interceptor.handle(event, annotatedEventListener, handler.get());
+//        }
     }
 
     @Override
