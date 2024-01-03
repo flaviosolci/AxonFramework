@@ -68,7 +68,7 @@ public class AsyncUnitOfWork implements ProcessingLifecycle {
     /**
      * Executes all the registered handlers in their respective phases.
      *
-     * @return a CompletableFuture that returns normally when the Unit Of Work has been committed or exceptionally with
+     * @return a {@link CompletableFuture} that returns normally when the Unit Of Work has been committed or exceptionally with
      * the exception that caused the Unit of Work to have been rolled back.
      */
     public CompletableFuture<Void> execute() {
@@ -293,7 +293,6 @@ public class AsyncUnitOfWork implements ProcessingLifecycle {
         }
 
         private CompletableFuture<Void> innerCommit() {
-
             return runPhase(Phase.PRE_INVOCATION)
                     .thenCompose(r -> runPhase(Phase.INVOCATION))
                     .thenCompose(r -> runPhase(Phase.POST_INVOCATION))
