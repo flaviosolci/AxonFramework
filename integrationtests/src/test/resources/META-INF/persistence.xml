@@ -16,15 +16,15 @@
   -->
 
 <persistence xmlns="https://jakarta.ee/xml/ns/persistence" version="3.0">
- <persistence-unit name="integrationtest" transaction-type="RESOURCE_LOCAL">
-  <provider>org.hibernate.ejb.HibernatePersistence</provider>
-  <class>org.axonframework.eventstore.jpa.DomainEventEntry</class>
-  <class>org.axonframework.eventstore.jpa.SnapshotEventEntry</class>
-  <class>org.axonframework.saga.repository.jpa.AssociationValueEntry</class>
-  <class>org.axonframework.saga.repository.jpa.SagaEntry</class>
-  <properties>
-   <property name="hibernate.archive.autodetection" value="class"/>
-  </properties>
-  <shared-cache-mode>NONE</shared-cache-mode>
- </persistence-unit>
+    <persistence-unit name="integrationtest" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.ejb.HibernatePersistence</provider>
+        <class>org.axonframework.eventstore.jpa.DomainEventEntry</class>
+        <class>org.axonframework.eventstore.jpa.SnapshotEventEntry</class>
+        <class>org.axonframework.saga.repository.jpa.AssociationValueEntry</class>
+        <class>org.axonframework.saga.repository.jpa.SagaEntry</class>
+        <properties>
+            <property name="hibernate.archive.autodetection" value="class"/>
+        </properties>
+        <shared-cache-mode>NONE</shared-cache-mode>
+    </persistence-unit>
 </persistence>
