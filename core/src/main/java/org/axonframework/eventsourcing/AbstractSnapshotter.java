@@ -16,6 +16,7 @@
 
 package org.axonframework.eventsourcing;
 
+import jakarta.annotation.Resource;
 import org.axonframework.common.DirectExecutor;
 import org.axonframework.common.io.IOUtils;
 import org.axonframework.domain.DomainEventMessage;
@@ -28,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.Executor;
-import javax.annotation.Resource;
 
 /**
  * Abstract implementation of the {@link org.axonframework.eventsourcing.Snapshotter} that uses a task executor to

@@ -16,7 +16,7 @@
 
 package org.axonframework.common.jpa;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 /**
  * Provides components with an EntityManager to access the persistence mechanism. Depending on the application

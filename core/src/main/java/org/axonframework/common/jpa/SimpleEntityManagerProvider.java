@@ -18,7 +18,7 @@ package org.axonframework.common.jpa;
 
 import org.axonframework.common.Assert;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 /**
  * Simple implementation of the EntityManagerProvider that returns the EntityManager instance provided at construction

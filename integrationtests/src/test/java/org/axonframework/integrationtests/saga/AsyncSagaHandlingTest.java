@@ -37,8 +37,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import static org.axonframework.domain.GenericEventMessage.asEventMessage;
 import static org.junit.Assert.*;

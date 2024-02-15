@@ -16,6 +16,8 @@
 
 package org.axonframework.saga;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.axonframework.common.Assert;
 import org.axonframework.common.Subscribable;
 import org.axonframework.common.lock.IdentifierBasedLock;
@@ -34,8 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 
 import static java.lang.String.format;
 

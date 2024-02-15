@@ -28,7 +28,7 @@ import org.springframework.context.ApplicationContextAware;
  * context the injector is registered in.
  * <p/>
  * Resources need to be annotated with a Spring-compatible auto-wiring annotation, such as {@link
- * org.springframework.beans.factory.annotation.Autowired @Autowired} or JSR-250's {@link javax.annotation.Resource}.
+ * org.springframework.beans.factory.annotation.Autowired @Autowired} or JSR-250's {@link jakarta.annotation.Resource}.
  * <p/>
  * Note: make sure that the Spring context also declares <code>&lt;context:annotation-config /&gt;</code> or an
  * <code>AutowiredAnnotationBeanPostProcessor</code>. See the Spring documentation for more information.

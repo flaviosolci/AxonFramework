@@ -16,8 +16,8 @@
 
 package org.axonframework.common.jpa;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 /**
  * EntityManagerProvider implementation that expects the container to inject the default container managed

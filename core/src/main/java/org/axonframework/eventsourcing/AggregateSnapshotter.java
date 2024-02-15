@@ -16,6 +16,7 @@
 
 package org.axonframework.eventsourcing;
 
+import jakarta.annotation.Resource;
 import org.axonframework.domain.DomainEventMessage;
 import org.axonframework.domain.DomainEventStream;
 import org.axonframework.domain.GenericDomainEventMessage;
@@ -23,7 +24,6 @@ import org.axonframework.domain.GenericDomainEventMessage;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.Resource;
 
 /**
  * Implementation of a snapshotter that uses the actual aggregate and its state to create a snapshot event. The

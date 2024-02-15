@@ -35,8 +35,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import static org.junit.Assert.*;
 

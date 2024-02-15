@@ -24,7 +24,7 @@ import org.axonframework.eventsourcing.AbstractEventSourcedAggregateRoot;
 import org.axonframework.eventsourcing.EventSourcedEntity;
 
 import java.util.Collection;
-import javax.persistence.MappedSuperclass;
+import jakarta.persistence.MappedSuperclass;
 
 /**
  * Convenience super type for aggregate roots that have their event handler methods annotated with the {@link

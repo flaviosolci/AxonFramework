@@ -50,7 +50,7 @@ import java.sql.SQLException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 import javax.sql.DataSource;
 
 import static org.axonframework.common.IdentifierValidator.validateIdentifier;

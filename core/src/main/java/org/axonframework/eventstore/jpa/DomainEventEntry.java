@@ -20,7 +20,7 @@ import org.axonframework.domain.DomainEventMessage;
 import org.axonframework.serializer.SerializedObject;
 import org.joda.time.DateTime;
 
-import javax.persistence.Entity;
+import jakarta.persistence.Entity;
 
 /**
  * JPA compliant wrapper around a DomainEvent. It stores a DomainEvent by extracting some of the information needed to

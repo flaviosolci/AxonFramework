@@ -201,7 +201,7 @@ public class EventProcessor implements Runnable {
                 mayContinue = (processedItems < itemsAtStart
                         && !eventQueue.isEmpty()
                         && !result.requiresRescheduleEvent())
-                        || !yield();
+                        || !this.yield();
             }
             notifyProcessingHandlers();
         }

@@ -19,9 +19,9 @@ package org.axonframework.repository;
 import org.axonframework.domain.AbstractAggregateRoot;
 import org.axonframework.domain.IdentifierFactory;
 
-import javax.persistence.Basic;
-import javax.persistence.Entity;
-import javax.persistence.Id;
+import jakarta.persistence.Basic;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 
 @Entity
 public class JpaAggregate extends AbstractAggregateRoot<String> {

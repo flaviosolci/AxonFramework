@@ -16,6 +16,7 @@
 
 package org.axonframework.eventhandling.scheduling.quartz;
 
+import jakarta.annotation.PostConstruct;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,9 +38,8 @@ import java.io.LineNumberReader;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import javax.annotation.PostConstruct;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 /**
  * @author Allard Buijze

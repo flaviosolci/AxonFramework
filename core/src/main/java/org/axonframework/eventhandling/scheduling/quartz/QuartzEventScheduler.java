@@ -16,6 +16,8 @@
 
 package org.axonframework.eventhandling.scheduling.quartz;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.Resource;
 import org.axonframework.common.Assert;
 import org.axonframework.domain.EventMessage;
 import org.axonframework.domain.GenericEventMessage;
@@ -37,9 +39,6 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.PostConstruct;
-import javax.annotation.Resource;
 
 import static org.quartz.JobKey.jobKey;
 

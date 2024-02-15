@@ -19,7 +19,7 @@ package org.axonframework.eventstore.jpa;
 import org.axonframework.domain.DomainEventMessage;
 import org.axonframework.serializer.SerializedObject;
 
-import javax.persistence.Entity;
+import jakarta.persistence.Entity;
 
 /**
  * JPA compatible entry that stores data required for the use of snapshot events.

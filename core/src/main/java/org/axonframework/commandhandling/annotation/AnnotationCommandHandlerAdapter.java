@@ -16,6 +16,8 @@
 
 package org.axonframework.commandhandling.annotation;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.axonframework.commandhandling.CommandBus;
 import org.axonframework.commandhandling.CommandMessage;
 import org.axonframework.commandhandling.NoHandlerForCommandException;
@@ -32,8 +34,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 
 /**
  * Adapter that turns any {@link CommandHandler @CommandHandler} annotated bean into a {@link

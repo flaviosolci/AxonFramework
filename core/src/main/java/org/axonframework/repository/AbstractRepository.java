@@ -16,13 +16,12 @@
 
 package org.axonframework.repository;
 
+import jakarta.annotation.Resource;
 import org.axonframework.common.Assert;
 import org.axonframework.domain.AggregateRoot;
 import org.axonframework.eventhandling.EventBus;
 import org.axonframework.unitofwork.CurrentUnitOfWork;
 import org.axonframework.unitofwork.SaveAggregateCallback;
-
-import javax.annotation.Resource;
 
 /**
  * Abstract implementation of the {@link Repository} that takes care of the dispatching of events when an aggregate is

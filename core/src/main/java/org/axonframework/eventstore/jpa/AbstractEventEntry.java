@@ -25,12 +25,12 @@ import org.joda.time.DateTime;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import javax.persistence.Basic;
-import javax.persistence.Column;
-import javax.persistence.Id;
-import javax.persistence.IdClass;
-import javax.persistence.Lob;
-import javax.persistence.MappedSuperclass;
+import jakarta.persistence.Basic;
+import jakarta.persistence.Column;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.Lob;
+import jakarta.persistence.MappedSuperclass;
 
 /**
  * Data needed by different types of event logs.

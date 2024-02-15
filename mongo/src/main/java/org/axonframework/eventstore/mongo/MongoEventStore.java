@@ -20,6 +20,7 @@ import com.mongodb.Bytes;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
+import jakarta.annotation.PostConstruct;
 import org.axonframework.domain.DomainEventMessage;
 import org.axonframework.domain.DomainEventStream;
 import org.axonframework.eventstore.EventStreamNotFoundException;
@@ -44,7 +45,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import javax.annotation.PostConstruct;
 
 /**
  * <p>Implementation of the <code>EventStore</code> based on a MongoDB instance or replica set. Sharding and pairing

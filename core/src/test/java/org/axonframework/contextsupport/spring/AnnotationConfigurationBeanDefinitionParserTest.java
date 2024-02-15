@@ -47,8 +47,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;

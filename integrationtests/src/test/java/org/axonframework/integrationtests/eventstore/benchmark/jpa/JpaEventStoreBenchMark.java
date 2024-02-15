@@ -25,8 +25,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import static org.junit.Assert.*;
 

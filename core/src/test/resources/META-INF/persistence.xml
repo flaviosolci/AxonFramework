@@ -14,11 +14,12 @@
   ~ limitations under the License.
   -->
 
-<persistence xmlns="http://java.sun.com/xml/ns/persistence" version="1.0">
-    <persistence-unit name="eventStore" transaction-type="RESOURCE_LOCAL">
-        <class>org.axonframework.eventstore.jpa.DomainEventEntry</class>
-        <class>org.axonframework.eventstore.jpa.SnapshotEventEntry</class>
-        <class>org.axonframework.saga.repository.jpa.AssociationValueEntry</class>
-        <class>org.axonframework.saga.repository.jpa.SagaEntry</class>
-    </persistence-unit>
+<persistence xmlns="https://jakarta.ee/xml/ns/persistence" version="3.0">
+ <persistence-unit name="eventStore" transaction-type="RESOURCE_LOCAL">
+  <class>org.axonframework.eventstore.jpa.DomainEventEntry</class>
+  <class>org.axonframework.eventstore.jpa.SnapshotEventEntry</class>
+  <class>org.axonframework.saga.repository.jpa.AssociationValueEntry</class>
+  <class>org.axonframework.saga.repository.jpa.SagaEntry</class>
+  <shared-cache-mode>NONE</shared-cache-mode>
+ </persistence-unit>
 </persistence>

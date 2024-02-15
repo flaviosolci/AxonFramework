@@ -18,10 +18,10 @@ package org.axonframework.saga.repository.jpa;
 
 import org.axonframework.saga.AssociationValue;
 
-import javax.persistence.Basic;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
+import jakarta.persistence.Basic;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
 
 /**
  * JPA wrapper around an Association Value. This entity is used to store relevant Association Values for Sagas.

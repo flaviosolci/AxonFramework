@@ -26,7 +26,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import javax.persistence.PersistenceException;
+import jakarta.persistence.PersistenceException;
 import javax.sql.DataSource;
 
 import static org.junit.Assert.*;

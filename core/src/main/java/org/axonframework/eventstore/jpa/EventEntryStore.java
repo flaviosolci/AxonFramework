@@ -22,7 +22,7 @@ import org.axonframework.serializer.SerializedObject;
 
 import java.util.Iterator;
 import java.util.Map;
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 /**
  * Interface describing the mechanism that stores Events into the backing data store.

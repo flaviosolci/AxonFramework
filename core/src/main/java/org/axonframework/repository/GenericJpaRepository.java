@@ -20,7 +20,7 @@ import org.axonframework.common.Assert;
 import org.axonframework.common.jpa.EntityManagerProvider;
 import org.axonframework.domain.AggregateRoot;
 
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import static java.lang.String.format;
 
@@ -114,7 +114,7 @@ public class GenericJpaRepository<T extends AggregateRoot> extends LockingReposi
      *
      * @param forceFlushOnSave whether or not to flush the EntityManager after each save. Defaults to
      *                         <code>true</code>.
-     * @see javax.persistence.EntityManager#flush()
+     * @see jakarta.persistence.EntityManager#flush()
      */
     public void setForceFlushOnSave(boolean forceFlushOnSave) {
         this.forceFlushOnSave = forceFlushOnSave;

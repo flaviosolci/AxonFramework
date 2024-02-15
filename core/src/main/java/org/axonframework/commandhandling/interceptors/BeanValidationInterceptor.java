@@ -23,10 +23,10 @@ import org.axonframework.commandhandling.InterceptorChain;
 import org.axonframework.unitofwork.UnitOfWork;
 
 import java.util.Set;
-import javax.validation.ConstraintViolation;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
+import jakarta.validation.ValidatorFactory;
 
 /**
  * Interceptor that applies JSR303 bean validation on incoming commands. When validation on a command fails, a
@@ -44,7 +44,7 @@ public class BeanValidationInterceptor implements CommandHandlerInterceptor, Com
 
     /**
      * Initializes a validation interceptor using a default ValidatorFactory (see {@link
-     * javax.validation.Validation#buildDefaultValidatorFactory()}).
+     * jakarta.validation.Validation#buildDefaultValidatorFactory()}).
      */
     public BeanValidationInterceptor() {
         this(Validation.buildDefaultValidatorFactory());

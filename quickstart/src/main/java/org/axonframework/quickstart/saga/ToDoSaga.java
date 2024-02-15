@@ -16,6 +16,7 @@
 
 package org.axonframework.quickstart.saga;
 
+import jakarta.annotation.Resource;
 import org.axonframework.commandhandling.gateway.CommandGateway;
 import org.axonframework.eventhandling.scheduling.EventScheduler;
 import org.axonframework.eventhandling.scheduling.ScheduleToken;
@@ -28,8 +29,6 @@ import org.axonframework.saga.annotation.EndSaga;
 import org.axonframework.saga.annotation.SagaEventHandler;
 import org.axonframework.saga.annotation.StartSaga;
 import org.joda.time.Duration;
-
-import javax.annotation.Resource;
 
 /**
  * @author Allard Buijze

@@ -19,7 +19,7 @@ package org.axonframework.commandhandling.interceptors;
 import org.axonframework.commandhandling.StructuralCommandValidationFailedException;
 
 import java.util.Set;
-import javax.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolation;
 
 /**
  * Specialized version of the StructuralCommandValidationFailedException that provides a set of JSR303 constraint

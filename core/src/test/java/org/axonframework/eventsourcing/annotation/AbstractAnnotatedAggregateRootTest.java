@@ -25,7 +25,7 @@ import org.junit.*;
 
 import java.lang.annotation.Annotation;
 import java.util.UUID;
-import javax.persistence.Id;
+import jakarta.persistence.Id;
 
 import static org.junit.Assert.*;
 

@@ -23,7 +23,7 @@ import org.axonframework.unitofwork.DefaultUnitOfWork;
 import org.junit.*;
 
 import java.util.UUID;
-import javax.persistence.EntityManager;
+import jakarta.persistence.EntityManager;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;

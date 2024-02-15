@@ -70,8 +70,13 @@ public class CommandGatewayFactoryBean<T> implements FactoryBean<T>, Initializin
         if (commandBus == null) {
             throw new AxonConfigurationException("CommandBus may not be null");
         }
-        gateway = (T) new GatewayProxyFactory(commandBus, retryScheduler, dispatchInterceptors)
-                .createGateway(gatewayInterface == null ? CommandGateway.class : gatewayInterface);
+        if (gatewayInterface == null) {
+            gateway = (T) new GatewayProxyFactory(commandBus, retryScheduler, dispatchInterceptors)
+                    .createGateway(CommandGateway.class);
+        } else {
+            gateway = new GatewayProxyFactory(commandBus, retryScheduler, dispatchInterceptors)
+                    .createGateway(gatewayInterface);
+        }
     }
 
     /**

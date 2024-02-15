@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import javax.persistence.EntityExistsException;
+import jakarta.persistence.EntityExistsException;
 import javax.sql.DataSource;
 
 /**
