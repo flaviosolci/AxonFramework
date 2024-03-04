@@ -16,12 +16,13 @@
 
 package org.axonframework.saga.repository.jpa;
 
-import org.axonframework.saga.AssociationValue;
-
 import jakarta.persistence.Basic;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import org.axonframework.saga.AssociationValue;
+
+import static jakarta.persistence.GenerationType.IDENTITY;
 
 /**
  * JPA wrapper around an Association Value. This entity is used to store relevant Association Values for Sagas.
@@ -33,7 +34,7 @@ import jakarta.persistence.Id;
 public class AssociationValueEntry {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = IDENTITY)
     private Long id;
 
     @Basic
